@@ -1,0 +1,122 @@
+{
+  "SRVMSDBA2_SKYEYE": {
+	"type": "mssql",
+    "server": "10.10.2.50",
+    "database": "SKYEYE",
+    "username": "sa",
+    "password": "Fta@2022"
+  },
+  "SRVMESDBA1_AMIS": {
+	"type": "mssql",	  
+    "server": "10.10.1.65",
+    "database": "AMIS",
+    "username": "sa",
+    "password": "Fta@2023"
+  },
+  "SRVMESDBA1_HR": {
+	"type": "mssql",	  
+    "server": "10.10.1.65",
+    "database": "HR",
+    "username": "sa",
+    "password": "Fta@2023"
+  },  
+  "SRVMSDBA1_FlawInspection": {
+	"type": "mssql",	  
+    "server": "10.10.1.115",
+    "database": "FlawInspection",
+    "username": "sa",
+    "password": "yfyoljk@"
+  },
+  "GZ": {
+    "type": "postgresql",
+    "server": "10.10.24.192",
+    "port": 5432,
+    "database": "Aiups_OnlineDB",
+    "username": "Aiups_OnlineDB",
+    "password": "Aiups_OnlineDB"
+  },
+  "SRVMSDBA2": {
+	"type": "mssql",	  
+    "server": "10.10.2.50",
+    "database": "GREENZONE",
+    "username": "sa",
+    "password": "Fta@2022"
+  },  
+  "YFYAIUPSVISA1": {
+	"type": "mssql",	  
+    "server": "10.10.24.153",
+    "database": "AIUPS_CDB",
+    "username": "sa",
+    "password": "Fta@2024"
+  }, 
+    "SRVAIUPSPRA1": {
+	"type": "mssql",	  
+    "server": "10.10.24.187",
+    "database": "AIUPS",
+    "username": "sa",
+    "password": "Fta@2024"
+  }, 
+    "SRVMSDBA1": {
+	"type": "mssql",	  
+    "server": "10.10.1.115",
+    "database": "AIMSFTAO",
+    "username": "sa",
+    "password": "yfyoljk@"
+  },   
+    "SRVAD1": {
+	"type": "mssql",	  
+    "server": "10.10.1.21",
+    "database": "AMIS",
+    "username": "sa",
+    "password": "yfyoljk"
+  },     
+    "CHPGTERPDBAAR01": {
+	"type": "mssql",	  
+    "server": "10.10.1.27",
+    "database": "YFYPRODERP_FTA",
+    "username": "sa",
+    "password": "yfyoljk"
+  },       
+    "SRVMESDBA1": {
+	"type": "mssql",	  
+    "server": "10.10.1.65",
+    "database": "AMIS",
+    "username": "sa",
+    "password": "Fta@2023"
+  },         
+    "SRVAD2": {
+	"type": "mssql",	  
+    "server": "10.10.1.22",
+    "database": "AMIS",
+    "username": "sa",
+    "password": "yfyoljk"
+  },     
+    "YFYAIDBA3": {
+	"type": "mssql",	  
+    "server": "10.10.24.49",
+    "database": "AI",
+    "username": "sa",
+    "password": "Fta@2022"
+  },   
+    "SRVADA1": {
+	"type": "mssql",	  
+    "server": "10.10.23.29",
+    "database": "ERP-A",
+    "username": "pd_user",
+    "password": "ayfyuserpd"
+  },     
+    "SRVAD6": {
+	"type": "mssql",	  
+    "server": "10.10.1.19",
+    "database": "HR",
+    "username": "sa",
+    "password": "yfyoljk"
+  },      
+    "WSP2023R2HTA1": {
+	"type": "mssql",	  
+    "server": "10.10.22.51",
+    "database": "Runtime",
+    "username": "query_user",
+    "password": "Fta@2025"
+  }  
+}
