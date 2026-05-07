@@ -1,7 +1,0 @@
-{
-  "Jwt": {
-      "Key": "yfy_fta_mis_aims",
-      "Issuer": "yfy.com",
-      "Audience": "yfy.com"
-  }
-}
