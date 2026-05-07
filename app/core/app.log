@@ -2867,6 +2867,7 @@ NameError: name 'skyeyeRealtimeBll' is not defined
 2026-03-07 12:57:23 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
 2026-03-07 12:57:23 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
 2026-03-07 12:57:24 [INFO] MES_API: FastAPI app created
+<<<<<<< HEAD
 2026-03-10 17:31:01 [INFO] MES_API: Get Wintriss length_realtime for user demo
 2026-03-10 17:31:01 [INFO] root: duptjobsDal
 2026-03-10 17:31:01 [INFO] root: Engine and sessionmaker created successfully.
@@ -2891,3 +2892,346 @@ NameError: name 'skyeyeRealtimeBll' is not defined
 2026-03-11 10:28:31 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
 2026-03-11 10:28:31 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
 2026-03-11 10:28:32 [INFO] MES_API: FastAPI app created
+=======
+2026-03-09 10:55:07 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-09 10:55:07 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-09 10:55:08 [INFO] MES_API: FastAPI app created
+2026-03-09 10:56:24 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-09 10:56:24 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-09 10:56:25 [INFO] MES_API: FastAPI app created
+2026-03-09 10:56:37 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-09 10:56:37 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-09 10:56:38 [INFO] MES_API: FastAPI app created
+2026-03-09 10:56:39 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-09 10:56:39 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-09 10:56:40 [INFO] MES_API: FastAPI app created
+2026-03-09 15:09:09 [INFO] MES_API: healthcheck API called
+2026-03-10 13:44:09 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 13:44:09 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 13:44:10 [INFO] MES_API: FastAPI app created
+2026-03-10 14:23:00 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 14:23:00 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 14:23:01 [INFO] MES_API: FastAPI app created
+2026-03-10 15:16:02 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:16:02 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:16:25 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:16:25 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:17:35 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:17:35 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:17:58 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:17:58 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:20:09 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:20:09 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:20:12 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:20:12 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:21:08 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:21:08 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:21:17 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:21:17 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:21:51 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:21:51 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:22:31 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:22:31 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:22:41 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:22:41 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:22:42 [INFO] MES_API: FastAPI app created
+2026-03-10 15:22:55 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:22:55 [ERROR] MES_API: Wintriss get_length failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 36, in getLength
+    mnameMapper = {"20": duptjobsDal(), }
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 50, in __init__
+    ic(trace_msg)
+NameError: name 'ic' is not defined
+2026-03-10 15:22:55 [ERROR] MES_API: get_defect failed: name 'ic' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\routers\wintriss.py", line 53, in get_defect
+    content, execution_time = WintrissService.get_length_realtime(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 36, in getLength
+    mnameMapper = {"20": duptjobsDal(), }
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 50, in __init__
+    ic(trace_msg)
+NameError: name 'ic' is not defined
+2026-03-10 15:23:56 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:23:56 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:23:57 [INFO] MES_API: FastAPI app created
+2026-03-10 15:24:00 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:24:00 [ERROR] MES_API: Wintriss get_length failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 36, in getLength
+    mnameMapper = {"20": duptjobsDal(), }
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 50, in __init__
+    ic(trace_msg)
+NameError: name 'ic' is not defined
+2026-03-10 15:24:00 [ERROR] MES_API: get_defect failed: name 'ic' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\routers\wintriss.py", line 53, in get_defect
+    content, execution_time = WintrissService.get_length_realtime(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 36, in getLength
+    mnameMapper = {"20": duptjobsDal(), }
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 50, in __init__
+    ic(trace_msg)
+NameError: name 'ic' is not defined
+2026-03-10 15:24:28 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:24:28 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:24:29 [INFO] MES_API: FastAPI app created
+2026-03-10 15:24:31 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:24:31 [INFO] root: duptjobsDal
+2026-03-10 15:24:31 [ERROR] MES_API: Wintriss get_length failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 59, in __init__
+    json_connections_path = os.path.join(current_app.config['folders']['temproot'], 'connections.json')
+NameError: name 'current_app' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 36, in getLength
+    mnameMapper = {"20": duptjobsDal(), }
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 70, in __init__
+    ic(msg)
+NameError: name 'ic' is not defined
+2026-03-10 15:24:31 [ERROR] MES_API: get_defect failed: name 'ic' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 59, in __init__
+    json_connections_path = os.path.join(current_app.config['folders']['temproot'], 'connections.json')
+NameError: name 'current_app' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\routers\wintriss.py", line 53, in get_defect
+    content, execution_time = WintrissService.get_length_realtime(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 36, in getLength
+    mnameMapper = {"20": duptjobsDal(), }
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 70, in __init__
+    ic(msg)
+NameError: name 'ic' is not defined
+2026-03-10 15:24:46 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:24:46 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:24:47 [INFO] MES_API: FastAPI app created
+2026-03-10 15:24:47 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:24:47 [INFO] root: duptjobsDal
+2026-03-10 15:24:47 [ERROR] MES_API: Wintriss get_length failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 43, in getLength
+    rst = dal.currentLenth(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 123, in currentLenth
+    session.close()
+UnboundLocalError: local variable 'session' referenced before assignment
+2026-03-10 15:24:47 [ERROR] MES_API: get_defect failed: local variable 'session' referenced before assignment
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\routers\wintriss.py", line 53, in get_defect
+    content, execution_time = WintrissService.get_length_realtime(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 43, in getLength
+    rst = dal.currentLenth(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 123, in currentLenth
+    session.close()
+UnboundLocalError: local variable 'session' referenced before assignment
+2026-03-10 15:32:11 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:32:11 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:32:11 [INFO] MES_API: FastAPI app created
+2026-03-10 15:32:57 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:32:57 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:32:57 [INFO] MES_API: FastAPI app created
+2026-03-10 15:33:19 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:33:19 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:33:20 [INFO] MES_API: FastAPI app created
+2026-03-10 15:33:28 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:33:28 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:33:28 [INFO] MES_API: FastAPI app created
+2026-03-10 15:33:29 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:33:29 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:33:30 [INFO] MES_API: FastAPI app created
+2026-03-10 15:33:34 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:33:34 [INFO] root: duptjobsDal
+2026-03-10 15:33:34 [ERROR] MES_API: Wintriss get_length failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 43, in getLength
+    rst = dal.currentLenth(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 123, in currentLenth
+    session.close()
+UnboundLocalError: local variable 'session' referenced before assignment
+2026-03-10 15:33:34 [ERROR] MES_API: get_defect failed: local variable 'session' referenced before assignment
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\routers\wintriss.py", line 53, in get_defect
+    content, execution_time = WintrissService.get_length_realtime(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 43, in getLength
+    rst = dal.currentLenth(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 123, in currentLenth
+    session.close()
+UnboundLocalError: local variable 'session' referenced before assignment
+2026-03-10 15:34:13 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:34:13 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:34:14 [INFO] MES_API: FastAPI app created
+2026-03-10 15:34:24 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:34:24 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:34:24 [INFO] MES_API: FastAPI app created
+2026-03-10 15:34:31 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:34:31 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:34:32 [INFO] MES_API: FastAPI app created
+2026-03-10 15:34:36 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:34:36 [INFO] root: duptjobsDal
+2026-03-10 15:34:36 [ERROR] MES_API: Wintriss get_length failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 43, in getLength
+    rst = dal.currentLenth(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 127, in currentLenth
+    session.close()
+UnboundLocalError: local variable 'session' referenced before assignment
+2026-03-10 15:34:36 [ERROR] MES_API: get_defect failed: local variable 'session' referenced before assignment
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\routers\wintriss.py", line 53, in get_defect
+    content, execution_time = WintrissService.get_length_realtime(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 43, in getLength
+    rst = dal.currentLenth(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 127, in currentLenth
+    session.close()
+UnboundLocalError: local variable 'session' referenced before assignment
+2026-03-10 15:35:44 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:35:44 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:35:45 [INFO] MES_API: FastAPI app created
+2026-03-10 15:35:55 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:35:55 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:35:56 [INFO] MES_API: FastAPI app created
+2026-03-10 15:36:05 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:36:05 [INFO] root: duptjobsDal
+2026-03-10 15:36:05 [ERROR] MES_API: Wintriss get_length failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 45, in getLength
+    for result in rst:
+TypeError: 'NoneType' object is not iterable
+2026-03-10 15:36:05 [ERROR] MES_API: get_defect failed: 'NoneType' object is not iterable
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\routers\wintriss.py", line 53, in get_defect
+    content, execution_time = WintrissService.get_length_realtime(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 45, in getLength
+    for result in rst:
+TypeError: 'NoneType' object is not iterable
+2026-03-10 15:37:23 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:37:23 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:37:23 [INFO] MES_API: FastAPI app created
+2026-03-10 15:38:04 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:38:04 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:38:05 [INFO] MES_API: FastAPI app created
+2026-03-10 15:38:11 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:38:11 [INFO] root: duptjobsDal
+2026-03-10 15:38:43 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:38:43 [INFO] root: duptjobsDal
+2026-03-10 15:40:08 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:40:08 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:40:08 [INFO] MES_API: FastAPI app created
+2026-03-10 15:40:14 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:40:14 [INFO] root: duptjobsDal
+2026-03-10 15:41:15 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:41:15 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:41:16 [INFO] MES_API: FastAPI app created
+2026-03-10 15:41:17 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:41:17 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:41:18 [INFO] MES_API: FastAPI app created
+2026-03-10 15:41:25 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:41:25 [INFO] root: duptjobsDal
+2026-03-10 15:41:33 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:41:33 [INFO] root: duptjobsDal
+2026-03-10 15:42:29 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:42:29 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:42:29 [INFO] MES_API: FastAPI app created
+2026-03-10 15:42:31 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:42:31 [INFO] root: duptjobsDal
+2026-03-10 15:43:07 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:43:07 [INFO] root: duptjobsDal
+2026-03-10 15:46:32 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:46:32 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:46:33 [INFO] MES_API: FastAPI app created
+2026-03-10 15:46:34 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:46:34 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:46:34 [INFO] MES_API: FastAPI app created
+2026-03-10 15:46:53 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:46:53 [INFO] root: duptjobsDal
+2026-03-10 15:49:19 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:49:19 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:49:20 [INFO] MES_API: FastAPI app created
+2026-03-10 15:49:28 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:49:28 [INFO] root: duptjobsDal
+2026-03-10 15:49:28 [ERROR] root: DAL query failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 86, in currentLenth
+    df = pd.read_sql(sql_query, self.engine)
+AttributeError: 'duptjobsDal' object has no attribute 'engine'
+2026-03-10 15:50:53 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:50:53 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:50:54 [INFO] MES_API: FastAPI app created
+2026-03-10 15:51:03 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:51:03 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:51:04 [INFO] MES_API: FastAPI app created
+2026-03-10 15:51:14 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:51:14 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:51:15 [INFO] MES_API: FastAPI app created
+2026-03-10 15:51:18 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:51:18 [INFO] root: duptjobsDal
+2026-03-10 15:51:18 [ERROR] root: duptjobsDal | Failed to create engine/session: name 'urlquote' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 56, in __init__
+    password = urlquote("yfyoljk@")
+NameError: name 'urlquote' is not defined
+2026-03-10 15:51:18 [ERROR] MES_API: Wintriss get_length failed
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 36, in getLength
+    mnameMapper = {"20": duptjobsDal(), }
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 56, in __init__
+    password = urlquote("yfyoljk@")
+NameError: name 'urlquote' is not defined
+2026-03-10 15:51:18 [ERROR] MES_API: get_defect failed: name 'urlquote' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\routers\wintriss.py", line 53, in get_defect
+    content, execution_time = WintrissService.get_length_realtime(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\services\wintriss.py", line 21, in get_length_realtime
+    rst = bll.getLength(data)
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\BLL\wintriss.py", line 36, in getLength
+    mnameMapper = {"20": duptjobsDal(), }
+  File "C:\Users\Jason.Ouyang\Downloads\OuYang\Python\20250204_PM21_GreenZone\app\DAL\srvmsdba1\FlawInspection\duptjobs.py", line 56, in __init__
+    password = urlquote("yfyoljk@")
+NameError: name 'urlquote' is not defined
+2026-03-10 15:51:54 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:51:54 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:51:55 [INFO] MES_API: FastAPI app created
+2026-03-10 15:51:58 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:51:58 [INFO] root: duptjobsDal
+2026-03-10 15:51:58 [INFO] root: Engine and sessionmaker created successfully.
+2026-03-10 15:54:19 [INFO] numexpr.utils: Note: NumExpr detected 12 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2026-03-10 15:54:19 [INFO] numexpr.utils: NumExpr defaulting to 8 threads.
+2026-03-10 15:54:20 [INFO] MES_API: FastAPI app created
+2026-03-10 15:54:23 [INFO] MES_API: Get Wintriss length_realtime for user demo
+2026-03-10 15:54:23 [INFO] root: duptjobsDal
+2026-03-10 15:54:23 [INFO] root: Engine and sessionmaker created successfully.
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d

@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from typing import List, Literal
 import logging
 
+<<<<<<< HEAD
 from schemas.skyeye import FtaResponseDefect, FtaResponseDefectCategory, FtaResponseDefectImage,                               FtaResponseDefectImageRealtime,                               FtaResponseDefectJudge,                               FtaResponseDefectReelStatistics,                               FtaResponseDefectReelStatisticsRealtime,                               FtaResponseDefectReelRealtime,                               FtaResponseDefectRealtime,                               FtaResponseRuleAlarm
 
 from schemas.skyeye import DefectJudgeRequest
@@ -23,6 +24,17 @@ router = APIRouter(
     prefix="/skyeye",
     tags=["SkyEye"],
     dependencies=[Depends(verify_jwt)]
+=======
+from app.schemas.skyeye import FtaResponseDefect, FtaResponseDefectCategory, FtaResponseDefectImage,                               FtaResponseDefectImageRealtime,                               FtaResponseDefectJudge, DefectJudgeRequest,                               FtaResponseDefectReelStatistics,                               FtaResponseDefectReelStatisticsRealtime,                               FtaResponseDefectReelRealtime,                               FtaResponseDefectRealtime,                               FtaResponseRuleAlarm
+
+from app.dependencies.auth import get_current_user
+from app.services.skyeye import SkyeyeService
+from app.fta_response import FtaResult
+
+router = APIRouter(
+    prefix="/skyeye",
+    tags=["SkyEye"]
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 )
 
 logger = logging.getLogger("MES_API")
@@ -234,6 +246,10 @@ def get_defect_image(
         logger.exception(f"get_defect_image failed: {e}")
         return FtaResult([], 0, False, export_format="json").to_dict()
 
+<<<<<<< HEAD
+=======
+# 20260309 荐韻確認目前未使用
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 # @router.get("/defect/image/uuid",response_model=FtaResponseDefectImage,
 #     summary=" "
 # )
@@ -395,11 +411,16 @@ def add_defect_judge(
     """
 
     try:
+<<<<<<< HEAD
         data = {
             "MachineName": MachineName,
             "Image": Image,
             "current_login_id": user["FTAId"]
         }
+=======
+        data = payload.dict()
+        data["current_login_id"] = user["FTAId"]
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
         logger.info(f"Defect judge by user {user['FTAId']}")
     
@@ -462,6 +483,10 @@ def get_defect_reel_statistics(
         logger.exception(f"get_defect_reel_statistics failed: {e}")
         return FtaResult([], 0, False, export_format="json").to_dict()        
     
+<<<<<<< HEAD
+=======
+# 20260309 荐韻確認目前未使用
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 # @router.get("/defect/reel_statistics_realtime", response_model=FtaResponseDefectReelStatisticsRealtime,
 #     summary=" ")
 # def get_defect_reel_statistics_realtime(

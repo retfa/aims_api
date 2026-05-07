@@ -7,8 +7,13 @@
 import time
 import logging
 from types import SimpleNamespace
+<<<<<<< HEAD
 from Kernel.JsonConverter import JsonConverter
 from BLL.wintriss import wintrissBll
+=======
+from app.Kernel.JsonConverter import JsonConverter
+from app.BLL.wintriss import wintrissBll
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 logger = logging.getLogger("MES_API")
 

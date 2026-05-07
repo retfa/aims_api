@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+<<<<<<< HEAD
 # In[1]:
 
 
@@ -44,4 +45,27 @@ def get_menu(Node: str, jwt_payload=Depends(verify_jwt)):
 
 
 
+=======
+# In[ ]:
+
+
+from fastapi import APIRouter
+import logging
+
+router = APIRouter(
+    prefix="/menu",
+    tags=["Menu"]
+)
+
+logger = logging.getLogger("MES_API")
+
+@router.get("/")
+def health():
+    logger.info("healthcheck API called")
+    return {
+        "status": "Healthy",
+        "version": "1.0.0",
+        "details": None
+    }
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 

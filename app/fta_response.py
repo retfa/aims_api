@@ -33,9 +33,14 @@ class FtaResult:
                     "ExecutionTime": f"{self.execution_time} ms",
                     "ExecutionDto": taipei_time_formatted,
                 },
+<<<<<<< HEAD
                 "status_code": self.status_code,                
                 "success": self.success,
 
+=======
+                "success": self.success,
+                "status_code": self.status_code,
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
             }
 
         # json 模式，只包 metadata，不解析 schema
@@ -49,6 +54,11 @@ class FtaResult:
                 "ExecutionDto": taipei_time_formatted,
                 "Length": length,
             },
+<<<<<<< HEAD
             "status_code": self.status_code,            
             "success": self.success,
+=======
+            "success": self.success,
+            "status_code": self.status_code,
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
         }

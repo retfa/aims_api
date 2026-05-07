@@ -7,9 +7,14 @@
 import time
 import logging
 from types import SimpleNamespace
+<<<<<<< HEAD
 from Kernel.JsonConverter import JsonConverter
 from BLL.skyeye import SkyeyeBll, SkyeyeCategoryBll,                           SkyeyeImageBll, SkyeyeImageRealtimeBll,                           SkyeyeReelBll, skyeyeRealtimeBll,                           SkyeyeJudgeBll
 #                             , SkyeyeReelRealtimeBll
+=======
+from app.Kernel.JsonConverter import JsonConverter
+from app.BLL.skyeye import SkyeyeBll, SkyeyeCategoryBll,                           SkyeyeImageBll, SkyeyeImageRealtimeBll,                           SkyeyeReelBll, skyeyeRealtimeBll, SkyeyeReelRealtimeBll
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 logger = logging.getLogger("MES_API")
 
@@ -113,6 +118,7 @@ class SkyeyeService:
             return [], round((time.time() - start_time) * 1000, 2) 
         
         
+<<<<<<< HEAD
 #     @staticmethod
 #     def get_defect_image_by_uuid(data: dict):
 #         start_time = time.time()
@@ -135,6 +141,30 @@ class SkyeyeService:
 #         except Exception as e:
 #             logger.exception(f"get_defect_image_by_uuid failed: {e}")
 #             return [], round((time.time() - start_time) * 1000, 2)    
+=======
+    @staticmethod
+    def get_defect_image_by_uuid(data: dict):
+        start_time = time.time()
+
+        data.setdefault("ExportFormat", "json")
+
+        # dict → namespace (因為你 BLL 可能用 data.xxx 取值)
+        data_ns = SimpleNamespace(**data)
+
+        try:
+            bll = SkyeyeImageBll()
+            rst = bll.ReadFromDbUuid(data_ns)
+
+            if data["ExportFormat"] == "tablejson":
+                rst = JsonConverter.dict_array_to_table_json_dict(rst)
+
+            execution_time = round((time.time() - start_time) * 1000, 2)
+            return rst, execution_time
+
+        except Exception as e:
+            logger.exception(f"get_defect_image_by_uuid failed: {e}")
+            return [], round((time.time() - start_time) * 1000, 2)    
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
         
     @staticmethod
     def get_defect_image_realtime(data: dict):
@@ -190,10 +220,22 @@ class SkyeyeService:
 
             execution_time_ms = round((time.time() - start_time) * 1000, 2)
 
+<<<<<<< HEAD
             # 保留原 tuple 判斷
             if isinstance(rst, tuple):
 
                 return rst[0], execution_time_ms
+=======
+            # ⚠️ 保留原本 tuple 判斷邏輯
+            if isinstance(rst, tuple):
+                # (data, status_code)
+                return FtaResult(
+                    rst[0],
+                    execution_time,
+                    False,
+                    rst[1]
+                ).to_dict()
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
             return rst, execution_time_ms
 
@@ -235,6 +277,7 @@ class SkyeyeService:
             return [], round((time.time() - start_time) * 1000, 2)
         
         
+<<<<<<< HEAD
 #     @staticmethod
 #     def get_defect_reel_realtime(data: dict):
 #         start_time = time.time()
@@ -265,6 +308,38 @@ class SkyeyeService:
 #         except Exception as e:
 #             logger.exception(f"SkyeyeService get_defect_reel_realtime failed: {e}")
 #             return [], round((time.time() - start_time) * 1000, 2)           
+=======
+    @staticmethod
+    def get_defect_reel_realtime(data: dict):
+        start_time = time.time()
+
+        # 補齊必要欄位
+        data.setdefault("ReelNo", [])
+        data.setdefault("Category", [])
+        data.setdefault("ExportFormat", "json")
+
+        # 處理 CSV 欄位
+        if data.get("ReelNoCsv"):
+            data["ReelNo"] = data["ReelNoCsv"].split(",")
+        if data.get("CategoryCsv"):
+            data["Category"] = data["CategoryCsv"].split(",")
+
+        # dict -> SimpleNamespace
+        data_ns = SimpleNamespace(**data)
+
+        try:
+            bll = SkyeyeReelRealtimeBll()
+            rst = bll.ReadFromDb(data_ns)
+
+            if data["ExportFormat"] == "tablejson":
+                rst = JsonConverter.dict_array_to_table_json_dict(rst)
+
+            execution_time = round((time.time() - start_time) * 1000, 2)
+            return rst, execution_time
+        except Exception as e:
+            logger.exception(f"SkyeyeService get_defect_reel_realtime failed: {e}")
+            return [], round((time.time() - start_time) * 1000, 2)           
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
         
         
     @staticmethod

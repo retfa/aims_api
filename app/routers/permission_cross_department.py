@@ -4,6 +4,7 @@
 # In[ ]:
 
 
+<<<<<<< HEAD
 from fastapi import APIRouter, Depends, Body, Request, Response, Query
 from fastapi.responses import JSONResponse
 from typing import Optional
@@ -119,4 +120,24 @@ def edit_user_permission_cross_department(
             status_code=500,
             success=False
         )
+=======
+from fastapi import APIRouter
+import logging
+
+router = APIRouter(
+    prefix="/permission-cross-department",
+    tags=["PermissionCrossDepartment"]
+)
+
+logger = logging.getLogger("MES_API")
+
+@router.get("/")
+def health():
+    logger.info("healthcheck API called")
+    return {
+        "status": "Healthy",
+        "version": "1.0.0",
+        "details": None
+    }
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+<<<<<<< HEAD
 # In[4]:
 
 
@@ -128,6 +129,35 @@ def create_app() -> FastAPI:
     # ✅ Redis client（lazy，不會在這裡連線）
     redis_client = redis.Redis(connection_pool=redis_pool)
     
+=======
+# In[6]:
+
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
+from app.core.config import settings
+from app.core.app_logging import init_logging
+import logging
+from pathlib import Path
+
+# 初始化 logging（只做一次）
+BASE_DIR = Path(__file__).resolve().parent
+log_path = BASE_DIR / "core" / "app.log"
+init_logging(log_path)
+
+logger = logging.getLogger("MES_API")
+
+from app.routers import (
+    healthcheck, login, business_intelligence, business_intelligence_history,
+    consumption, department, dining, machine, menu, menutree, user,
+    permission, permission_cross_department, program, paper_quality_standard,
+    skyeye, wintriss, aug,
+    system, auth
+)
+
+def create_app() -> FastAPI:
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
     app = FastAPI(
         title="MES API",
         version="1.0.0",
@@ -151,6 +181,7 @@ def create_app() -> FastAPI:
     "ExecutionDto": 執行時間,
     "Length": Content筆數,
 }
+<<<<<<< HEAD
 """  
     )
     
@@ -277,6 +308,50 @@ def create_app() -> FastAPI:
         # 將預設的 40 個 Thread 增加到 100 個
         RunVar("_default_thread_limiter").set(CapacityLimiter(100))
         logger.info("FastAPI startup: Thread pool limit set to 100")    
+=======
+""",        
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # 放這裡，會讓 Swagger UI 出現右上角 Authorize
+    bearer_scheme = HTTPBearer()    
+    
+    # 系統相關 Router
+    app.include_router(system.router, prefix="/system", tags=["System"])
+    
+    # 功能 Router
+# ----舊FLASK API ----
+    app.include_router(healthcheck.router)
+    app.include_router(login.router)
+    app.include_router(business_intelligence.router)
+    app.include_router(business_intelligence_history.router)
+    app.include_router(consumption.router)
+    app.include_router(department.router)
+    app.include_router(dining.router)
+    app.include_router(machine.router)
+    app.include_router(menu.router)
+    app.include_router(menutree.router)
+    app.include_router(user.router)
+    app.include_router(permission.router)
+    app.include_router(permission_cross_department.router)
+    app.include_router(program.router)
+    app.include_router(paper_quality_standard.router)
+    app.include_router(skyeye.router)
+    app.include_router(wintriss.router)
+    app.include_router(aug.router)
+    
+#     app.include_router(auth.router)
+
+# ---- 舊FAST API ----
+
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
     logger.info("FastAPI app created")  # 啟動時記錄
 
@@ -284,6 +359,7 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
+<<<<<<< HEAD
 if __name__ == "__main__":
     import multiprocessing
     multiprocessing.freeze_support()
@@ -305,6 +381,8 @@ if __name__ == "__main__":
         backlog=2048           # 增加等待隊列，防止高併發時連線被拒絕        
     )
 
+=======
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 # In[ ]:
 

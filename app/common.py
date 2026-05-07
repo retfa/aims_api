@@ -1,11 +1,18 @@
 import datetime
 import json
 import os
+<<<<<<< HEAD
 # from flask_restx import reqparse, fields
 from urllib.parse import quote
 import logging
 import jwt
 from pathlib import Path
+=======
+from flask_restx import reqparse, fields
+from urllib.parse import quote
+import logging
+import jwt
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 
 
@@ -129,10 +136,16 @@ def GetJwtPayload(security, req):
 
 
 def set_security(target, app):
+<<<<<<< HEAD
     BASE_DIR = Path(__file__).resolve().parent
     json_path_security = os.path.join(BASE_DIR, "core", "security.json")
     logging.info(f'json_path_security: {json_path_security}')
     with open(json_path_security, 'r', encoding='utf-8') as file2:
+=======
+    json_path_security = os.path.join(app.config['folders']['temproot'], 'security.json')
+    logging.info(f'json_path_security: {json_path_security}')
+    with open(json_path_security, 'r') as file2:
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
         data = json.load(file2)
         target.security = {}
         target.security['key'] = data["Jwt"]["Key"]

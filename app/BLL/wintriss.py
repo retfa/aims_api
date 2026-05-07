@@ -1,10 +1,17 @@
 import time
 import pandas as pd
+<<<<<<< HEAD
+=======
+# from icecream import ic
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 import base64
 import os
 import pyodbc
 import numpy as np
+<<<<<<< HEAD
 import logging
+=======
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
@@ -12,6 +19,7 @@ from sqlalchemy.orm import sessionmaker
 from PIL import Image
 import io
 
+<<<<<<< HEAD
 from DAL.srvmsdba1.FlawInspection.duptjobs import duptjobsDal
 from utils.db_engine import get_session
 
@@ -49,6 +57,49 @@ class wintrissBll:
 
     def ReadFromDb(self,data):
         session = self.Session()
+=======
+from app.DAL.srvmsdba1.FlawInspection.duptjobs import duptjobsDal
+
+
+class wintrissBll:
+    def browse(self, data):
+        mnameMapper = {"20": duptjobsDal(), }
+        dal = None
+        if 'MachineName' in data and data['MachineName'] in mnameMapper:
+            dal = mnameMapper[data['MachineName']]
+        else:
+            return None
+
+        rst = dal.query(data)
+        # ic(type(rst))
+        for result in rst:
+            # ic(type(result))
+            # result['TagName'] = data['TagNameOrigin']
+            pass
+        return rst
+
+    def getLength(self, data):
+        mnameMapper = {"20": duptjobsDal(), }
+        dal = None
+        if 'MachineName' in data and data['MachineName'] in mnameMapper:
+            dal = mnameMapper[data['MachineName']]
+        else:
+            return None
+
+        rst = dal.currentLenth(data)
+        
+        print("DAL result:", rst)
+
+        return rst
+
+    def ReadFromDb(self,data):
+        # 建立 SQLAlchemy 引擎並連接到 SQL Server
+        engine = create_engine("mssql+pyodbc://sa:yfyoljk%40@SRVMSDBA1.yfy.corp/FlawInspection?driver=ODBC+Driver+17+for+SQL+Server",)
+
+        # 建立會話
+        Session = sessionmaker(bind=engine)
+        session = Session()
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
         # 自定義 SQL 查詢語句
         sql_query = f"""
@@ -84,7 +135,21 @@ and flaw.dtTime between @queryStartTime and @queryEndTime
         params = {}
         params['JobID'] = f"{data.ReelNo}"
 
+<<<<<<< HEAD
 
+=======
+        # if data.station:
+        #     cond.append("station = :station")
+        #     params['station'] = f"{data.station}"
+
+        # if data.production_line:
+        #     cond.append("pm =  :pm")
+        #     params['pm'] = f"{data.production_line}"
+
+        # if data.name:
+        #     cond.append("mname = :mname")
+        #     params['mname'] = f"{data.name}"
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
         try:
                 # result = session.execute(text(sql_query), params)
             result_df = pd.read_sql(text(sql_query), session.bind, params=params)
@@ -125,6 +190,7 @@ and flaw.dtTime between @queryStartTime and @queryEndTime
 
 
 class wintrissRealtimeBll:
+<<<<<<< HEAD
     def __init__(self, folders):
         trace_msg = f'{self.__class__.__name__}'
         logging.info(trace_msg)
@@ -137,6 +203,8 @@ class wintrissRealtimeBll:
 
         except Exception as e:
             logger.error(f"skyeye.py | init error: {e}")
+=======
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
     def browse(self, data):
         mnameMapper = {"20": FTA_PM20_skyeyeDal(), "21": FTA_PM21_skyeyeDal()}
         dal = None
@@ -154,7 +222,16 @@ class wintrissRealtimeBll:
         return rst
 
     def ReadFromDb(self,data):
+<<<<<<< HEAD
         session = self.Session()
+=======
+        # 建立 SQLAlchemy 引擎並連接到 SQL Server
+        engine = create_engine("mssql+pyodbc://sa:yfyoljk%40@SRVMSDBA1.yfy.corp/FlawInspection?driver=ODBC+Driver+17+for+SQL+Server",)
+
+        # 建立會話
+        Session = sessionmaker(bind=engine)
+        session = Session()
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
         # 自定義 SQL 查詢語句
         sql_query = f"""
@@ -258,6 +335,7 @@ class wintrissReelBll:
 
 
 class wintrissImageBll:
+<<<<<<< HEAD
     def __init__(self, folders):
         trace_msg = f'{self.__class__.__name__}'
         logging.info(trace_msg)
@@ -265,6 +343,8 @@ class wintrissImageBll:
             self.session = get_session("SRVMESDBA1_FlawInspection")
         except Exception as e:
             logger.error(f"skyeye.py | init error: {e}")
+=======
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
     # def browse(self, data):
     #     mnameMapper = {"20": FTA_PM20_skyeye_reelDal(), "21": FTA_PM21_skyeye_reelDal()}
     #     dal = None
@@ -315,7 +395,16 @@ class wintrissImageBll:
         return png_files_base64
 
     def ReadFromDbTest(self):
+<<<<<<< HEAD
         session = self.Session()
+=======
+        # 建立 SQLAlchemy 引擎並連接到 SQL Server
+        engine = create_engine("mssql+pyodbc://sa:yfyoljk%40@SRVMSDBA1.yfy.corp/AIMSFTAX?driver=ODBC+Driver+17+for+SQL+Server",)
+
+        # 建立會話
+        Session = sessionmaker(bind=engine)
+        session = Session()
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
         limit = 400
 
         # 自定義 SQL 查詢語句
@@ -394,7 +483,16 @@ where flaw.lFlawClassType=7 and flaw.SourceDB='WebDB4'
         return png_files_base64
 
     def ReadFromDb(self,data):
+<<<<<<< HEAD
         session = self.Session()
+=======
+        # 建立 SQLAlchemy 引擎並連接到 SQL Server
+        engine = create_engine("mssql+pyodbc://sa:yfyoljk%40@SRVMSDBA1.yfy.corp/FlawInspection?driver=ODBC+Driver+17+for+SQL+Server",)
+
+        # 建立會話
+        Session = sessionmaker(bind=engine)
+        session = Session()
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
         # 自定義 SQL 查詢語句
         sql_query = f"""

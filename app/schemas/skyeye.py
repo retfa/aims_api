@@ -91,8 +91,11 @@ class DefectImageResponse(BaseModel):
     Action: str = Field("", description="操作名稱，可空")
     Content: List[DefectImageItem] = Field(..., description="資料內容")
     ExecutionTime: str = Field(..., description="執行時間 (ms)")
+<<<<<<< HEAD
     ExecutionDto: str
     Length: int        
+=======
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
     
 
 class FtaResponseDefectImage(BaseModel):
@@ -135,7 +138,10 @@ class DefectImageRealtimeResponse(BaseModel):
     Content: List[DefectImageRealtimeItem] = Field(..., description="資料內容")
     ExecutionTime: str = Field(..., description="執行時間 (ms)")
     ExecutionDto: str = Field(..., description="目前時間")
+<<<<<<< HEAD
     Length: int
+=======
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 class FtaResponseDefectImageRealtime(BaseModel):
     data: DefectImageRealtimeResponse
@@ -144,6 +150,7 @@ class FtaResponseDefectImageRealtime(BaseModel):
         
 # === Judge ===
 class DefectJudgeRequest(BaseModel):
+<<<<<<< HEAD
     MachineName: str = Field(..., description="機台名稱", example="20")
     Image: Dict[str, Any] = Field(..., description="影像資料")
 
@@ -154,6 +161,19 @@ class DefectJudgeResponse(BaseModel):
     ExecutionDto: str = Field(..., description="目前時間")
     Length: int
     
+=======
+    MachineName: str
+    ReelNo: str
+    Uuid: str
+    JudgeResult: str
+    Remark: Optional[str] = None
+
+class DefectJudgeResponse(BaseModel):
+    Content: Dict[str, Any]
+    ExecutionTime: str
+    Action: str = ""
+
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 class FtaResponseDefectJudge(BaseModel):
     data: DefectJudgeResponse
     success: bool
@@ -185,7 +205,10 @@ class DefectReelStatisticsRealtimeResponse(BaseModel):
     Content: List[DefectReelStatisticsItem] = Field(..., description="資料內容")
     ExecutionTime: str = Field(..., description="執行時間 (ms)")
     ExecutionDto: str = Field(..., description="目前時間")
+<<<<<<< HEAD
     Length: int
+=======
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 class FtaResponseDefectReelStatisticsRealtime(BaseModel):
     data: DefectReelStatisticsResponse
@@ -212,7 +235,10 @@ class DefectReelRealtimeResponse(BaseModel):
     Content: List[DefectReelRealtimeItem] = Field(..., description="資料內容")
     ExecutionTime: str = Field(..., description="執行時間 (ms)")
     ExecutionDto: str = Field(..., description="目前時間")
+<<<<<<< HEAD
     Length: int
+=======
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 class FtaResponseDefectReelRealtime(BaseModel):
     data: DefectReelRealtimeResponse

@@ -4,6 +4,7 @@
 # In[ ]:
 
 
+<<<<<<< HEAD
 import logging
 from resources.System import CurrentTime
 
@@ -19,4 +20,11 @@ class SystemService:
         except Exception as e:
             logger.error(f"CurrentTime fetch error: {e}")
             return {"success": False, "message": str(e)}
+=======
+def health_check():
+    return {
+        "success": True,
+        "data": "OK"
+    }
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 

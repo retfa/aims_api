@@ -9,10 +9,17 @@ from fastapi.responses import JSONResponse
 from typing import List, Literal
 import logging
 
+<<<<<<< HEAD
 from schemas.wintriss import FtaResponseLength
 from dependencies.auth import get_current_user
 from services.wintriss import WintrissService
 from fta_response import FtaResult
+=======
+from app.schemas.wintriss import FtaResponseLength
+from app.dependencies.auth import get_current_user
+from app.services.wintriss import WintrissService
+from app.fta_response import FtaResult
+>>>>>>> 5fdc104f2621270c2c6ffd3627dc2ff894f4834d
 
 router = APIRouter(
     prefix="/wintriss",
