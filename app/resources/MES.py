@@ -714,7 +714,7 @@ class ERP_SR_summary:
     def __init__(self, servers):
         self.servers = servers 
         
-    def fetch(self, stime: str, etime: str, mname: str, start_Time: str, end_Time: str): 
+    def fetch(self, stime: str, etime: str, mname: str, start_Time: str, end_Time: str, detail: bool = False, ERPtime: bool = False): 
         startTime = time.time()
         
         if not stime:
@@ -741,7 +741,7 @@ class ERP_SR_summary:
 
         srv_SRVAD1 = self.servers['SRVAD1'] 
         with srv_SRVAD1['create_engine'][0].connect() as conn: 
-            if not start_Time:
+            if not start_Time or ERPtime:
                 sql =   """
                     SELECT mes_no, batch_no
                     FROM (
@@ -994,6 +994,17 @@ class ERP_SR_summary:
             """        
             query = conn.execute(text(sql))  
             df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
+
+            winno_list = ", ".join([f"'{item}'" for item in list(df_adwind['winno'].unique())])
+            sql_td = f"""
+            SELECT [LOT_NUMBER],[TRANSACTION_DATE]
+            FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+            WHERE [LOT_NUMBER] IN ({winno_list})
+            AND [PREVIOUS_RXID] IS NULL
+            AND STATUS_CODE = 'S'
+            """
+            query = conn.execute(text(sql_td))
+            df_TRANSACTION_DATE = pd.DataFrame([dict(i) for i in query])
             
         df_adwind = df_adwind.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
         df_adwind['store'] = np.where(
@@ -1026,6 +1037,19 @@ class ERP_SR_summary:
         df_adwind_merge['roll_type'] = df_adwind_merge['roll_type'].fillna('')  
         df_adwind_merge['core_tube_d'] = df_adwind_merge['core_tube_d'].fillna('') 
         df_adwind_merge['SOLD_TO_CUST_NAME'] = df_adwind_merge['SOLD_TO_CUST_NAME'].fillna('')
+
+        if not df_TRANSACTION_DATE.empty:
+            df_adwind_merge = df_adwind_merge.merge(df_TRANSACTION_DATE, left_on='winno', right_on='LOT_NUMBER', how='left', suffixes=('', '_td'))
+            df_adwind_merge = df_adwind_merge.drop(columns=['LOT_NUMBER'], errors='ignore')
+            df_adwind_merge['TRANSACTION_DATE'] = df_adwind_merge['TRANSACTION_DATE'].fillna('').astype(str)
+        else:
+            df_adwind_merge['TRANSACTION_DATE'] = ''
+
+        if ERPtime and start_Time:
+            df_adwind_merge = df_adwind_merge[
+                (df_adwind_merge['TRANSACTION_DATE'] >= start_Time) &
+                (df_adwind_merge['TRANSACTION_DATE'] <= end_Time)
+            ]
         
         # 匯出csv 測試用
         df_adwind_merge.loc[:,['relno','winno','runno','ptype','pclass',
@@ -1034,83 +1058,159 @@ class ERP_SR_summary:
         .sort_values(by=['pdate','winno'])\
         .to_csv('df_adwind_merge.csv',index=0,encoding='big5')
         
-        df_result = df_adwind_merge.groupby(['runno','bdate', 'batch_no', 'ptype', 'pgramg','lenth','width','pclass',
-                                             'store','core_tube_d','roll_type','SOLD_TO_CUST_NAME'])\
-            .agg(weigh_sum=('weigh', 'sum'), weigh_count=('weigh', 'count'),note=('note', 'max'))\
-            .reset_index()     
-        
-        for k in list(df_result.columns):
-            if k not in ['weigh_count','weigh_sum']:
-                df_result[k] = df_result[k].astype(str)
-            else:
-                df_result[k] = df_result[k].astype(float)
-            
-        if not df_result.empty:
-            # 確保 T 欄位為 float
-            df_result["weigh_count"] = df_result["weigh_count"].astype(float)
-            df_result["weigh_sum"] = df_result["weigh_sum"].astype(float)
-            
-            groups = []
-            grouped_bdate = df_result.groupby('bdate')
+        if detail:
+            if not df_adwind_merge.empty:
+                df_adwind_merge['bdate'] = df_adwind_merge['bdate'].astype(str)
+                df_adwind_merge['pdate'] = df_adwind_merge['pdate'].astype(str)
+                df_adwind_merge['weigh'] = df_adwind_merge['weigh'].astype(float)
+                for k in df_adwind_merge.columns:
+                    if k not in ['weigh']:
+                        df_adwind_merge[k] = df_adwind_merge[k].astype(str)
 
-            for bdate, df_bdate in grouped_bdate:
-                weigh_count_subtotal = round(df_bdate["weigh_count"].sum(), 2)
-                weigh_sum_subtotal = round(df_bdate["weigh_sum"].sum(), 3)
+                group_date_col = 'TRANSACTION_DATE' if ERPtime else 'pdate'
+                groups = []
+                grouped_bdate = df_adwind_merge.groupby(group_date_col)
 
-                runno_groups = []
-                grouped_runno = df_bdate.groupby('runno')
+                for group_date, df_bdate in grouped_bdate:
+                    weigh_count_subtotal = len(df_bdate)
+                    weigh_sum_subtotal = round(df_bdate["weigh"].sum(), 3)
 
-                for runno, df_runno in grouped_runno:
-                    weigh_count_runno_subtotal = round(df_runno["weigh_count"].sum(), 2)
-                    weigh_sum_runno_subtotal = round(df_runno["weigh_sum"].sum(), 3)
+                    runno_groups = []
+                    grouped_runno = df_bdate.groupby('runno')
 
-                    items = [{
-                        "batch_no": row["batch_no"],
-                        "ptype": row["ptype"],
-                        "pgramg": row["pgramg"],
-                        "lenth": row["lenth"],
-                        "width": row["width"],
-                        "pclass": row["pclass"],
-                        "store": row["store"],
-                        "weigh_count": str(row["weigh_count"]),
-                        "weigh_sum": str(row["weigh_sum"]),
-                        "roll_type": row["roll_type"],
-                        "core_tube_d": row["core_tube_d"],
-                        "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
-                        "note": row["note"],
-                    } for _, row in df_runno.iterrows()]
+                    for runno, df_runno in grouped_runno:
+                        weigh_count_runno_subtotal = len(df_runno)
+                        weigh_sum_runno_subtotal = round(df_runno["weigh"].sum(), 3)
 
-                    runno_groups.append({
-                        "runno": runno,
-                        "weigh_count_runno_subtotal": weigh_count_runno_subtotal,
-                        "weigh_sum_runno_subtotal": weigh_sum_runno_subtotal,
-                        "items": items
+                        items = [{
+                            "relno": row["relno"],
+                            "winno": row["winno"],
+                            "pdate": row["pdate"],
+                            "bdtm": row["bdtm"],
+                            "batch_no": row["batch_no"],
+                            "ptype": row["ptype"],
+                            "pgramg": row["pgramg"],
+                            "lenth": row["lenth"],
+                            "width": row["width"],
+                            "pclass": row["pclass"],
+                            "store": row["store"],
+                            "weigh": str(row["weigh"]),
+                            "roll_type": row["roll_type"],
+                            "core_tube_d": row["core_tube_d"],
+                            "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
+                            "TRANSACTION_DATE": row["TRANSACTION_DATE"],
+                            "note": row["note"],
+                        } for _, row in df_runno.iterrows()]
+
+                        runno_groups.append({
+                            "runno": runno,
+                            "weigh_count_runno_subtotal": weigh_count_runno_subtotal,
+                            "weigh_sum_runno_subtotal": weigh_sum_runno_subtotal,
+                            "items": items
+                        })
+
+                    groups.append({
+                        "bdate": group_date,
+                        "weigh_count_subtotal": weigh_count_subtotal,
+                        "weigh_sum_subtotal": weigh_sum_subtotal,
+                        "runno_groups": runno_groups
                     })
 
-                groups.append({
-                    "bdate": bdate,
-                    "weigh_count_subtotal": weigh_count_subtotal,
-                    "weigh_sum_subtotal": weigh_sum_subtotal,
-                    "runno_groups": runno_groups
-                })
-
-            # 全體總結
-            result_json = {
-                "summary": {
-                    "weigh_count_total": round(df_result["weigh_count"].sum(), 2),
-                    "weigh_sum_total": round(df_result["weigh_sum"].sum(), 3)
-                },
-                "groups": groups
-            }            
-
+                result_json = {
+                    "summary": {
+                        "weigh_count_total": len(df_adwind_merge),
+                        "weigh_sum_total": round(df_adwind_merge["weigh"].sum(), 3)
+                    },
+                    "groups": groups
+                }
+            else:
+                result_json = {
+                    "summary": {
+                        "weigh_count_total": 0,
+                        "weigh_sum_total": 0
+                    },
+                    "groups": []
+                }
         else:
-            result_json = {
-                "summary": {
-                    "weigh_count_total": 0,
-                    "weigh_sum_total": 0
-                },
-                "groups": []
-            }                        
+            df_result = df_adwind_merge.groupby(['runno','bdate', 'batch_no', 'ptype', 'pgramg','lenth','width','pclass',
+                                                 'store','core_tube_d','roll_type','SOLD_TO_CUST_NAME'])\
+                .agg(weigh_sum=('weigh', 'sum'), weigh_count=('weigh', 'count'),note=('note', 'max'),
+                     TRANSACTION_DATE=('TRANSACTION_DATE', 'max'))\
+                .reset_index()     
+            
+            for k in list(df_result.columns):
+                if k not in ['weigh_count','weigh_sum']:
+                    df_result[k] = df_result[k].astype(str)
+                else:
+                    df_result[k] = df_result[k].astype(float)
+                
+            if not df_result.empty:
+                # 確保 T 欄位為 float
+                df_result["weigh_count"] = df_result["weigh_count"].astype(float)
+                df_result["weigh_sum"] = df_result["weigh_sum"].astype(float)
+                
+                groups = []
+                grouped_bdate = df_result.groupby('bdate')
+
+                for bdate, df_bdate in grouped_bdate:
+                    weigh_count_subtotal = round(df_bdate["weigh_count"].sum(), 2)
+                    weigh_sum_subtotal = round(df_bdate["weigh_sum"].sum(), 3)
+
+                    runno_groups = []
+                    grouped_runno = df_bdate.groupby('runno')
+
+                    for runno, df_runno in grouped_runno:
+                        weigh_count_runno_subtotal = round(df_runno["weigh_count"].sum(), 2)
+                        weigh_sum_runno_subtotal = round(df_runno["weigh_sum"].sum(), 3)
+
+                        items = [{
+                            "batch_no": row["batch_no"],
+                            "ptype": row["ptype"],
+                            "pgramg": row["pgramg"],
+                            "lenth": row["lenth"],
+                            "width": row["width"],
+                            "pclass": row["pclass"],
+                            "store": row["store"],
+                            "weigh_count": str(row["weigh_count"]),
+                            "weigh_sum": str(row["weigh_sum"]),
+                            "roll_type": row["roll_type"],
+                            "core_tube_d": row["core_tube_d"],
+                            "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
+                            "TRANSACTION_DATE": row["TRANSACTION_DATE"],
+                            "note": row["note"]
+                        } for _, row in df_runno.iterrows()]
+
+                        runno_groups.append({
+                            "runno": runno,
+                            "weigh_count_runno_subtotal": weigh_count_runno_subtotal,
+                            "weigh_sum_runno_subtotal": weigh_sum_runno_subtotal,
+                            "items": items
+                        })
+
+                    groups.append({
+                        "bdate": bdate,
+                        "weigh_count_subtotal": weigh_count_subtotal,
+                        "weigh_sum_subtotal": weigh_sum_subtotal,
+                        "runno_groups": runno_groups
+                    })
+
+                # 全體總結
+                result_json = {
+                    "summary": {
+                        "weigh_count_total": round(df_result["weigh_count"].sum(), 2),
+                        "weigh_sum_total": round(df_result["weigh_sum"].sum(), 3)
+                    },
+                    "groups": groups
+                }            
+
+            else:
+                result_json = {
+                    "summary": {
+                        "weigh_count_total": 0,
+                        "weigh_sum_total": 0
+                    },
+                    "groups": []
+                }                        
 
         ExecutionTime = time.time() - startTime
 
@@ -1124,7 +1224,7 @@ class ERP_SH_summary:
     def __init__(self, servers):
         self.servers = servers     
     
-    def fetch(self, stime: str, etime: str, mname: str, start_Time: str, end_Time: str): 
+    def fetch(self, stime: str, etime: str, mname: str, start_Time: str, end_Time: str, detail: bool = False, ERPtime: bool = False): 
         startTime = time.time()
 
         if not stime:
@@ -1158,7 +1258,7 @@ class ERP_SH_summary:
             query = conn.execute(text(sql))  
             df_SOLD_TO_CUST_NAME = pd.DataFrame([dict(i) for i in query])  # ABD020I1
             
-            if not start_Time:
+            if not start_Time or ERPtime:
                 sql =   """
                 ;with raw_data as
                 (
@@ -1224,7 +1324,7 @@ class ERP_SH_summary:
                     WHERE Creation_date >= dateadd(m,-6,getdate()) AND substring(batch_no,10,2) = ''SH'' AND status_code = ''S''
                     ') a
                     inner join adsel b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass in ('A','P') or b.pclass is null) --and substring(batch_no,10,2) = 'SH'
-                    inner join (select bhno,pdate from ampack) c on c.bhno = b.bhno
+                    inner join (select bhno,pdate from amsel) c on c.bhno = b.bhno
                     where substring(runno,1,1) = """+ str(sub_r) +""" and b.bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.nstation not in('SP','WP','WH','SH') and b.re <> 0 --and a.status_code = 'S'
                     and c.pdate between '"""+ str(start_Time) +"""' and '"""+ str(end_Time) +"""'
                     --order by runno, batch_no, ptype, psize1, psize2, x_yn, bhno            
@@ -1253,6 +1353,17 @@ class ERP_SH_summary:
                 """        
                 query = conn.execute(text(sql))
                 df_CHPGTERPDBAAR01_BATCH_NO = pd.DataFrame([dict(i) for i in query])
+
+                stkno_list = ", ".join([f"'{item}'" for item in list(df_result['stkno'].unique())])
+                sql_td = f"""
+                SELECT [LOT_NUMBER],[TRANSACTION_DATE]
+                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                WHERE [LOT_NUMBER] IN ({stkno_list})
+                AND [PREVIOUS_RXID] IS NULL
+                AND STATUS_CODE = 'S'
+                """
+                query = conn.execute(text(sql_td))
+                df_TRANSACTION_DATE = pd.DataFrame([dict(i) for i in query])
             
             if not df_CHPGTERPDBAAR01_BATCH_NO.empty:
                 df_result = df_result.merge(df_CHPGTERPDBAAR01_BATCH_NO,left_on = ['batch_no','stkno'], 
@@ -1262,115 +1373,226 @@ class ERP_SH_summary:
             else:
                 df_result['LOT_NUMBER'] = ''
 
-            df_result = (
-                df_result.groupby([
-                    'runno', 'bdate', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2',
-                    'store', 'ExportSales', 'pclass', 'rewt', 'itemNo'
-                ], as_index=False)
-                .agg({
-                    're': 'sum',
-                    'T': 'sum',
-                    # count(*) 對應到 group 內的筆數，可以選任何欄位 count
-                    'mname': 'count',
-                    'LOT_NUMBER': 'max'
-                })
-                .rename(columns={'mname': 'amount'})  # 把剛剛 count 的欄位改名為 amount
-            )             
-            
-            df_result = df_result[
-                ['runno','bdate','batch_no','ptype','pgramg','psize1','psize2','store',
-                 'ExportSales','pclass','rewt','itemNo','re','T','amount','LOT_NUMBER']
-            ]         
-            
-            df_result = df_result.merge(df_SOLD_TO_CUST_NAME,left_on = 'runno',right_on='runno',how = 'left')
-            df_result['SOLD_TO_CUST_NAME'] = df_result['SOLD_TO_CUST_NAME'].fillna('')
-            
-            srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
-            with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:            
-                in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])  # 注意雙單引號
-                sql = f"""
+            if not df_TRANSACTION_DATE.empty:
+                df_result = df_result.merge(df_TRANSACTION_DATE, left_on='stkno', right_on='LOT_NUMBER', how='left', suffixes=('', '_td'))
+                df_result = df_result.drop(columns=['LOT_NUMBER_td'], errors='ignore')
+                df_result['TRANSACTION_DATE'] = df_result['TRANSACTION_DATE'].fillna('').astype(str)
+            else:
+                df_result['TRANSACTION_DATE'] = ''
+
+            if ERPtime and start_Time:
+                df_result = df_result[
+                    (df_result['TRANSACTION_DATE'] >= start_Time) &
+                    (df_result['TRANSACTION_DATE'] <= end_Time)
+                ]
+
+            if detail:
+                df_result = df_result.merge(df_SOLD_TO_CUST_NAME,left_on = 'runno',right_on='runno',how = 'left')
+                df_result['SOLD_TO_CUST_NAME'] = df_result['SOLD_TO_CUST_NAME'].fillna('')
+
+                srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
+                with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:            
+                    in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])  # 注意雙單引號
+                    sql = f"""
                 SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
                 """        
-                query = conn.execute(text(sql))  
-                df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
+                    query = conn.execute(text(sql))  
+                    df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
 
-            df_result = df_result.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
+                df_result = df_result.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
 
-            df_result['note'] = np.where(
-                df_result['CATALOG_ELEM_VAL_010'].notna(),
-                np.where(
-                    df_result['LOT_NUMBER'].ne(''),
-                    '',
-                    '資料未轉移至JT'
-                ),
-                '料號不存在，請檢查資料正確性'
-            )
-            
-            df_result['rewt'] = np.where(
-                df_result['CATALOG_ELEM_VAL_060'].notna(),
-                df_result['CATALOG_ELEM_VAL_060'],
-                df_result['rewt']
-            )
-            
-            df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
+                df_result['note'] = np.where(
+                    df_result['CATALOG_ELEM_VAL_010'].notna(),
+                    np.where(
+                        df_result['LOT_NUMBER'].ne(''),
+                        '',
+                        '資料未轉移至JT'
+                    ),
+                    '料號不存在，請檢查資料正確性'
+                )
 
-            for k in list(df_result.columns):
-                if k not in ['re','T']:
-                    df_result[k] = df_result[k].astype(str)
-                else:
-                    df_result[k] = df_result[k].astype(float)                
+                df_result['rewt'] = np.where(
+                    df_result['CATALOG_ELEM_VAL_060'].notna(),
+                    df_result['CATALOG_ELEM_VAL_060'],
+                    df_result['rewt']
+                )
 
-            # 確保 T 欄位為 float
-            df_result["re"] = df_result["re"].astype(float)
-            df_result["T"] = df_result["T"].astype(float)
-            
+                df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
 
-            # 計算總計
-            re_total = round(df_result["re"].sum(), 2)
-            T_total = round(df_result["T"].sum(), 3)
-            
+                df_result['bdate'] = df_result['bdate'].astype(str)
+                df_result['re'] = df_result['re'].astype(float)
+                df_result['T'] = df_result['T'].astype(float)
+                for k in list(df_result.columns):
+                    if k not in ['re', 'T']:
+                        df_result[k] = df_result[k].astype(str)
 
-            # 依照 bdate, runno, batch_no 分組後，組出 groups 陣列
-            groups = []
-            grouped = df_result.groupby(['bdate'])
+                group_date_col = 'TRANSACTION_DATE' if ERPtime else 'bdtm'
+                groups = []
+                grouped_bdate = df_result.groupby(group_date_col)
 
-            for bdate, group in grouped:
-                re_subtotal = round(group["re"].sum(), 2)
-                T_subtotal = round(group["T"].sum(), 3)
-                
+                for group_date, df_bdate in grouped_bdate:
+                    re_subtotal = round(df_bdate["re"].sum(), 2)
+                    T_subtotal = round(df_bdate["T"].sum(), 3)
 
-                items = [{
-                    "runno": row["runno"],
-                    "batch_no": row["batch_no"],                    
-                    "ptype": row["ptype"],
-                    "pgramg": row["pgramg"],
-                    "psize1": row["psize1"],
-                    "psize2": row["psize2"],
-                    "store": row["store"],
-                    "ExportSales": row["ExportSales"],
-                    "pclass": row["pclass"],
-                    "rewt": row["rewt"],
-                    "re": str(row["re"]),
-                    "T": str(row["T"]),
-                    "amount": row["amount"],
-                    "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
-                    "note": row["note"]
-                } for _, row in group.iterrows()]
+                    runno_groups = []
+                    grouped_runno = df_bdate.groupby('runno')
 
-                groups.append({
-                    "bdate": bdate,
-                    "re_subtotal": re_subtotal,
-                    "T_subtotal": T_subtotal,
-                    "items": items
-                })
+                    for runno, df_runno in grouped_runno:
+                        re_runno_subtotal = round(df_runno["re"].sum(), 2)
+                        T_runno_subtotal = round(df_runno["T"].sum(), 3)
 
-            result_json = {
-                "summary": {
-                    "re_total": re_total,
-                    "T_total": T_total
-                },
-                "groups": groups
-            }
+                        items = [{
+                            "bhno": row["bhno"],
+                            "stkno": row["stkno"],
+                            "bdtm": row["bdtm"],
+                            "batch_no": row["batch_no"],
+                            "ptype": row["ptype"],
+                            "pgramg": row["pgramg"],
+                            "psize1": row["psize1"],
+                            "psize2": row["psize2"],
+                            "store": row["store"],
+                            "ExportSales": row["ExportSales"],
+                            "pclass": row["pclass"],
+                            "rewt": row["rewt"],
+                            "re": str(row["re"]),
+                            "T": str(row["T"]),
+                            "LOT_NUMBER": row["LOT_NUMBER"],
+                            "TRANSACTION_DATE": row["TRANSACTION_DATE"],
+                            "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
+                            "note": row["note"]
+                        } for _, row in df_runno.iterrows()]
+
+                        runno_groups.append({
+                            "runno": runno,
+                            "re_runno_subtotal": re_runno_subtotal,
+                            "T_runno_subtotal": T_runno_subtotal,
+                            "items": items
+                        })
+
+                    groups.append({
+                        "bdate": group_date,
+                        "re_subtotal": re_subtotal,
+                        "T_subtotal": T_subtotal,
+                        "runno_groups": runno_groups
+                    })
+
+                result_json = {
+                    "summary": {
+                        "re_total": round(df_result["re"].sum(), 2),
+                        "T_total": round(df_result["T"].sum(), 3)
+                    },
+                    "groups": groups
+                }
+
+            else:
+                df_result = (
+                    df_result.groupby([
+                        'runno', 'bdate', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2',
+                        'store', 'ExportSales', 'pclass', 'rewt', 'itemNo'
+                    ], as_index=False)
+                    .agg({
+                        're': 'sum',
+                        'T': 'sum',
+                        # count(*) 對應到 group 內的筆數，可以選任何欄位 count
+                        'mname': 'count',
+                        'LOT_NUMBER': 'max',
+                        'TRANSACTION_DATE': 'max'
+                    })
+                    .rename(columns={'mname': 'amount'})  # 把剛剛 count 的欄位改名為 amount
+                )             
+
+                df_result = df_result[
+                    ['runno','bdate','batch_no','ptype','pgramg','psize1','psize2','store',
+                     'ExportSales','pclass','rewt','itemNo','re','T','amount','LOT_NUMBER','TRANSACTION_DATE']
+                ]         
+
+                df_result = df_result.merge(df_SOLD_TO_CUST_NAME,left_on = 'runno',right_on='runno',how = 'left')
+                df_result['SOLD_TO_CUST_NAME'] = df_result['SOLD_TO_CUST_NAME'].fillna('')
+
+                srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
+                with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:            
+                    in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])  # 注意雙單引號
+                    sql = f"""
+                SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
+                """        
+                    query = conn.execute(text(sql))  
+                    df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
+
+                df_result = df_result.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
+
+                df_result['note'] = np.where(
+                    df_result['CATALOG_ELEM_VAL_010'].notna(),
+                    np.where(
+                        df_result['LOT_NUMBER'].ne(''),
+                        '',
+                        '資料未轉移至JT'
+                    ),
+                    '料號不存在，請檢查資料正確性'
+                )
+
+                df_result['rewt'] = np.where(
+                    df_result['CATALOG_ELEM_VAL_060'].notna(),
+                    df_result['CATALOG_ELEM_VAL_060'],
+                    df_result['rewt']
+                )
+
+                df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
+
+                for k in list(df_result.columns):
+                    if k not in ['re','T']:
+                        df_result[k] = df_result[k].astype(str)
+                    else:
+                        df_result[k] = df_result[k].astype(float)                
+
+                # 確保 T 欄位為 float
+                df_result["re"] = df_result["re"].astype(float)
+                df_result["T"] = df_result["T"].astype(float)
+
+                # 計算總計
+                re_total = round(df_result["re"].sum(), 2)
+                T_total = round(df_result["T"].sum(), 3)
+
+                # 依照 bdate, runno, batch_no 分組後，組出 groups 陣列
+                groups = []
+                grouped = df_result.groupby(['bdate'])
+
+                for bdate, group in grouped:
+                    re_subtotal = round(group["re"].sum(), 2)
+                    T_subtotal = round(group["T"].sum(), 3)
+
+                    items = [{
+                        "runno": row["runno"],
+                        "batch_no": row["batch_no"],                    
+                        "ptype": row["ptype"],
+                        "pgramg": row["pgramg"],
+                        "psize1": row["psize1"],
+                        "psize2": row["psize2"],
+                        "store": row["store"],
+                        "ExportSales": row["ExportSales"],
+                        "pclass": row["pclass"],
+                        "rewt": row["rewt"],
+                        "re": str(row["re"]),
+                        "T": str(row["T"]),
+                        "amount": row["amount"],
+                        "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
+                        "TRANSACTION_DATE": row["TRANSACTION_DATE"],
+                        "note": row["note"]
+                    } for _, row in group.iterrows()]
+
+                    groups.append({
+                        "bdate": bdate,
+                        "re_subtotal": re_subtotal,
+                        "T_subtotal": T_subtotal,
+                        "items": items
+                    })
+
+                result_json = {
+                    "summary": {
+                        "re_total": re_total,
+                        "T_total": T_total
+                    },
+                    "groups": groups
+                }
 
         else:
             result_json = {
