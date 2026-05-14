@@ -1,0 +1,33 @@
+# 文字檔案
+**.log
+
+# 排除 pyinstaller 產生的執行檔和資料夾
+**.spec
+**/dist/  
+**/build/  
+**.tmp
+
+# 排除 Python 虛擬環境
+**/venv/  
+**/.venv/  
+**/env/  
+**.env
+
+
+# 排除所有 Excel 檔案
+**.xls
+**.xlsx
+**.xlsm
+**.csv
+
+# 排除位元組碼快取檔案
+__pycache__/
+**.pyc
+**.pyo
+**.pyd
+
+# 
+.cursor/
+.json
+app/connections.json
+app/appsettings.json
