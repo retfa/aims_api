@@ -714,7 +714,7 @@ class ERP_SR_summary:
     def __init__(self, servers):
         self.servers = servers 
         
-    def fetch(self, stime: str, etime: str, mname: str, start_Time: str, end_Time: str, detail: bool = False, ERPtime: bool = False): 
+    def fetch(self, stime: str, etime: str, mname: str): 
         startTime = time.time()
         
         if not stime:
@@ -1033,16 +1033,16 @@ class ERP_SR_summary:
                 groups = []
                 grouped_bdate = df_result.groupby('bdate')
 
-            for bdate, df_bdate in grouped_bdate:
-                weigh_count_subtotal = float(round(df_bdate["weigh_count"].sum(), 2))
-                weigh_sum_subtotal = float(round(df_bdate["weigh_sum"].sum(), 3))
+                for bdate, df_bdate in grouped_bdate:
+                    weigh_count_subtotal = float(round(df_bdate["weigh_count"].sum(), 2))
+                    weigh_sum_subtotal = float(round(df_bdate["weigh_sum"].sum(), 3))
 
-                runno_groups = []
-                grouped_runno = df_bdate.groupby('runno')
+                    runno_groups = []
+                    grouped_runno = df_bdate.groupby('runno')
 
-                for runno, df_runno in grouped_runno:
-                    weigh_count_runno_subtotal = float(round(df_runno["weigh_count"].sum(), 2))
-                    weigh_sum_runno_subtotal = float(round(df_runno["weigh_sum"].sum(), 3))
+                    for runno, df_runno in grouped_runno:
+                        weigh_count_runno_subtotal = float(round(df_runno["weigh_count"].sum(), 2))
+                        weigh_sum_runno_subtotal = float(round(df_runno["weigh_sum"].sum(), 3))
 
                         items = [{
                             "batch_no": row["batch_no"],
@@ -1068,29 +1068,29 @@ class ERP_SR_summary:
                             "items": items
                         })
 
-                groups.append({
-                    "bdate": bdate,
-                    "weigh_count_subtotal": weigh_count_subtotal,
-                    "weigh_sum_subtotal": weigh_sum_subtotal,
-                    "runno_groups": runno_groups
-                })
+                    groups.append({
+                        "bdate": bdate,
+                        "weigh_count_subtotal": weigh_count_subtotal,
+                        "weigh_sum_subtotal": weigh_sum_subtotal,
+                        "runno_groups": runno_groups
+                    })
 
-            result_json = {
-                "summary": {
-                    "weigh_count_total": float(round(df_result["weigh_count"].sum(), 2)),
-                    "weigh_sum_total": float(round(df_result["weigh_sum"].sum(), 3))
-                },
-                "groups": groups
-            }            
+                result_json = {
+                    "summary": {
+                        "weigh_count_total": float(round(df_result["weigh_count"].sum(), 2)),
+                        "weigh_sum_total": float(round(df_result["weigh_sum"].sum(), 3))
+                    },
+                    "groups": groups
+                }
 
-        else:
-            result_json = {
-                "summary": {
-                    "weigh_count_total": 0,
-                    "weigh_sum_total": 0
-                },
-                "groups": []
-            }                        
+            else:
+                result_json = {
+                    "summary": {
+                        "weigh_count_total": 0,
+                        "weigh_sum_total": 0
+                    },
+                    "groups": []
+                }
 
         ExecutionTime = time.time() - startTime
 
@@ -1104,7 +1104,7 @@ class ERP_SH_summary:
     def __init__(self, servers):
         self.servers = servers     
     
-    def fetch(self, stime: str, etime: str, mname: str, start_Time: str, end_Time: str, detail: bool = False, ERPtime: bool = False): 
+    def fetch(self, stime: str, etime: str, mname: str): 
         startTime = time.time()
 
         if not stime:
@@ -1236,26 +1236,26 @@ class ERP_SH_summary:
             df_result = df_result.merge(df_SOLD_TO_CUST_NAME, left_on='runno', right_on='runno', how='left')
             df_result['SOLD_TO_CUST_NAME'] = df_result['SOLD_TO_CUST_NAME'].fillna('')
 
-                srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
-                with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:            
-                    in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])  # 注意雙單引號
-                    sql = f"""
+            srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
+            with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:            
+                in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])  # 注意雙單引號
+                sql = f"""
                 SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
                 """        
-                    query = conn.execute(text(sql))  
-                    df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
+                query = conn.execute(text(sql))  
+                df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
 
-                df_result = df_result.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
+            df_result = df_result.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
 
-                df_result['note'] = np.where(
-                    df_result['CATALOG_ELEM_VAL_010'].notna(),
-                    np.where(
-                        df_result['LOT_NUMBER'].ne(''),
-                        '',
-                        '資料未轉移至JT'
-                    ),
-                    '料號不存在，請檢查資料正確性'
-                )
+            df_result['note'] = np.where(
+                df_result['CATALOG_ELEM_VAL_010'].notna(),
+                np.where(
+                    df_result['LOT_NUMBER'].ne(''),
+                    '',
+                    '資料未轉移至JT'
+                ),
+                '料號不存在，請檢查資料正確性'
+            )
 
             df_result['rewt'] = np.where(
                 df_result['CATALOG_ELEM_VAL_060'].notna(),
@@ -1263,22 +1263,16 @@ class ERP_SH_summary:
                 df_result['rewt']
             )
 
-                df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
+            df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
+            df_result['bdate'] = df_result['bdate'].astype(str)
+            df_result['re'] = df_result['re'].astype(float)
+            df_result['T'] = df_result['T'].astype(float)
+            for k in list(df_result.columns):
+                if k not in ['re', 'T']:
+                    df_result[k] = df_result[k].astype(str)
 
-                df_result['bdate'] = df_result['bdate'].astype(str)
-                df_result['re'] = df_result['re'].astype(float)
-                df_result['T'] = df_result['T'].astype(float)
-                for k in list(df_result.columns):
-                    if k not in ['re', 'T']:
-                        df_result[k] = df_result[k].astype(str)
-
-                group_date_col = 'TRANSACTION_DATE' if ERPtime else 'bdtm'
-                groups = []
-                grouped_bdate = df_result.groupby(group_date_col)
-
-                for group_date, df_bdate in grouped_bdate:
-                    re_subtotal = round(df_bdate["re"].sum(), 2)
-                    T_subtotal = round(df_bdate["T"].sum(), 3)
+            re_total = float(round(df_result["re"].sum(), 2))
+            T_total = float(round(df_result["T"].sum(), 3))
 
             groups = []
             grouped = df_result.groupby(['bdate'])
@@ -1575,20 +1569,20 @@ class ERP_SR_detail:
                     "items": items
                 })
 
-                    groups.append({
-                        "bdate": group_date,
-                        "re_subtotal": re_subtotal,
-                        "T_subtotal": T_subtotal,
-                        "runno_groups": runno_groups
-                    })
+            groups.append({
+                "bdate": td,
+                "weigh_count_subtotal": weigh_count_subtotal,
+                "weigh_sum_subtotal": weigh_sum_subtotal,
+                "runno_groups": runno_groups
+            })
 
-                result_json = {
-                    "summary": {
-                        "re_total": round(df_result["re"].sum(), 2),
-                        "T_total": round(df_result["T"].sum(), 3)
-                    },
-                    "groups": groups
-                }
+        result_json = {
+            "summary": {
+                "weigh_count_total": len(df_adwind_merge),
+                "weigh_sum_total": float(round(df_adwind_merge["weigh"].sum(), 3))
+            },
+            "groups": groups
+        }
 
         ExecutionTime = time.time() - startTime
         return result_json
@@ -1780,22 +1774,15 @@ class ERP_SH_detail:
                 "runno_groups": runno_groups
             })
 
-                result_json = {
-                    "summary": {
-                        "re_total": re_total,
-                        "T_total": T_total
-                    },
-                    "groups": groups
-                }
-
-        else:
-            result_json = {
-                "summary": {
-                    "re_total": 0,
-                    "T_total": 0
-                },
-                "groups": []
-            }            
+        re_total = float(round(df_result["re"].sum(), 2))
+        T_total = float(round(df_result["T"].sum(), 3))
+        result_json = {
+            "summary": {
+                "re_total": re_total,
+                "T_total": T_total
+            },
+            "groups": groups
+        }
 
         ExecutionTime = time.time() - startTime
         return result_json
