@@ -756,7 +756,7 @@ class ERP_SR_summary:
                     WHERE rn = 1 AND mes_no IN (
                         select distinct runno from adwind 
                         where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                        and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
+                        and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""'
                         and prod not in('3','5','6') 
                     )          
                 """       
@@ -830,7 +830,7 @@ class ERP_SR_summary:
                             from adwind 
                             inner join ampaper b on adwind.ptype = b.ptype
                             where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                            and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
+                            and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""'
                             and prod not in('3','5','6') 
                             --order by runno, prod, ptype, pclass, width, pgramg, x_yn, relno, swinno     
                         ) n
@@ -853,8 +853,8 @@ class ERP_SR_summary:
                     WHERE rn = 1 AND mes_no IN (
                         select distinct runno from adwind 
                         where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                        and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' 
-                        and pdate between '"""+ str(start_Time) +"""' and '"""+ str(end_Time) +"""' 
+                        and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""' 
+                        and pdate >= '"""+ str(start_Time) +"""' and pdate < '"""+ str(end_Time) +"""' 
                         and prod not in('3','5','6') 
                     )          
                 """       
@@ -928,8 +928,8 @@ class ERP_SR_summary:
                             from adwind 
                             inner join ampaper b on adwind.ptype = b.ptype
                             where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                            and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' 
-                            and pdate between '"""+ str(start_Time) +"""' and '"""+ str(end_Time) +"""' 
+                            and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""' 
+                            and pdate >= '"""+ str(start_Time) +"""' and pdate < '"""+ str(end_Time) +"""' 
                             and prod not in('3','5','6') 
                             --order by runno, prod, ptype, pclass, width, pgramg, x_yn, relno, swinno     
                         ) n
@@ -1281,7 +1281,7 @@ class ERP_SH_summary:
                     WHERE Creation_date >= DATEADD(m,-6,getdate()) AND substring(batch_no,10,2) = ''SH'' AND status_code = ''S''
                     ') a
                     inner join adpack b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass <> 'A') --and substring(batch_no,10,2) = 'SH'
-                    where substring(runno,1,1) = """+ str(sub_r) +""" and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.re <> 0 --and a.status_code = 'S'
+                    where substring(runno,1,1) = """+ str(sub_r) +""" and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""' and b.re <> 0 --and a.status_code = 'S'
 
                     union
 
@@ -1293,7 +1293,7 @@ class ERP_SH_summary:
                     WHERE Creation_date >= dateadd(m,-6,getdate()) AND substring(batch_no,10,2) = ''SH'' AND status_code = ''S''
                     ') a
                     inner join adsel b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass in ('A','P') or b.pclass is null) --and substring(batch_no,10,2) = 'SH'
-                    where substring(runno,1,1) = """+ str(sub_r) +""" and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.nstation not in('SP','WP','WH','SH') and b.re <> 0 --and a.status_code = 'S'
+                    where substring(runno,1,1) = """+ str(sub_r) +""" and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""' and b.nstation not in('SP','WP','WH','SH') and b.re <> 0 --and a.status_code = 'S'
                     --order by runno, batch_no, ptype, psize1, psize2, x_yn, bhno            
                 )
                 SELECT *,rewt*re*0.0004535924 AS T,
@@ -1321,8 +1321,8 @@ class ERP_SH_summary:
                     ') a
                     inner join adpack b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass <> 'A') --and substring(batch_no,10,2) = 'SH'
                     inner join (select bhno,pdate from ampack) c on c.bhno = b.bhno
-                    where substring(runno,1,1) = """+ str(sub_r) +""" and b.bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.re <> 0 --and a.status_code = 'S'
-                    and c.pdate between '"""+ str(start_Time) +"""' and '"""+ str(end_Time) +"""' 
+                    where substring(runno,1,1) = """+ str(sub_r) +""" and b.bdate >= '"""+ str(stime) +"""' and b.bdate < '"""+ str(etime) +"""' and b.re <> 0 --and a.status_code = 'S'
+                    and c.pdate >= '"""+ str(start_Time) +"""' and c.pdate < '"""+ str(end_Time) +"""' 
 
                     union
 
@@ -1335,8 +1335,8 @@ class ERP_SH_summary:
                     ') a
                     inner join adsel b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass in ('A','P') or b.pclass is null) --and substring(batch_no,10,2) = 'SH'
                     inner join (select bhno,pdate from amsel) c on c.bhno = b.bhno
-                    where substring(runno,1,1) = """+ str(sub_r) +""" and b.bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.nstation not in('SP','WP','WH','SH') and b.re <> 0 --and a.status_code = 'S'
-                    and c.pdate between '"""+ str(start_Time) +"""' and '"""+ str(end_Time) +"""'
+                    where substring(runno,1,1) = """+ str(sub_r) +""" and b.bdate >= '"""+ str(stime) +"""' and b.bdate < '"""+ str(etime) +"""' and b.nstation not in('SP','WP','WH','SH') and b.re <> 0 --and a.status_code = 'S'
+                    and c.pdate >= '"""+ str(start_Time) +"""' and c.pdate < '"""+ str(end_Time) +"""'
                     --order by runno, batch_no, ptype, psize1, psize2, x_yn, bhno            
                 )
                 SELECT *,rewt*re*0.0004535924 AS T,
