@@ -853,8 +853,8 @@ class ERP_SR_summary:
                     WHERE rn = 1 AND mes_no IN (
                         select distinct runno from adwind 
                         where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                        and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""' 
-                        and pdate >= '"""+ str(start_Time) +"""' and pdate < '"""+ str(end_Time) +"""' 
+                        and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""'
+                        and pdate >= '"""+ str(start_Time) +"""' and pdate < '"""+ str(end_Time) +"""'
                         and prod not in('3','5','6') 
                     )          
                 """       
@@ -928,8 +928,8 @@ class ERP_SR_summary:
                             from adwind 
                             inner join ampaper b on adwind.ptype = b.ptype
                             where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                            and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""' 
-                            and pdate >= '"""+ str(start_Time) +"""' and pdate < '"""+ str(end_Time) +"""' 
+                            and bdate >= '"""+ str(stime) +"""' and bdate < '"""+ str(etime) +"""'
+                            and pdate >= '"""+ str(start_Time) +"""' and pdate < '"""+ str(end_Time) +"""'
                             and prod not in('3','5','6') 
                             --order by runno, prod, ptype, pclass, width, pgramg, x_yn, relno, swinno     
                         ) n
@@ -1195,14 +1195,14 @@ class ERP_SR_summary:
                             "weigh_count_runno_subtotal": weigh_count_runno_subtotal,
                             "weigh_sum_runno_subtotal": weigh_sum_runno_subtotal,
                             "items": items
-                        })
-
-                    groups.append({
-                        "bdate": bdate,
-                        "weigh_count_subtotal": weigh_count_subtotal,
-                        "weigh_sum_subtotal": weigh_sum_subtotal,
-                        "runno_groups": runno_groups
                     })
+
+                groups.append({
+                    "bdate": bdate,
+                    "weigh_count_subtotal": weigh_count_subtotal,
+                    "weigh_sum_subtotal": weigh_sum_subtotal,
+                    "runno_groups": runno_groups
+                })
 
                 # 全體總結
                 result_json = {
@@ -1323,6 +1323,7 @@ class ERP_SH_summary:
                     inner join (select bhno,pdate from ampack) c on c.bhno = b.bhno
                     where substring(runno,1,1) = """+ str(sub_r) +""" and b.bdate >= '"""+ str(stime) +"""' and b.bdate < '"""+ str(etime) +"""' and b.re <> 0 --and a.status_code = 'S'
                     and c.pdate >= '"""+ str(start_Time) +"""' and c.pdate < '"""+ str(end_Time) +"""' 
+
 
                     union
 

@@ -176,6 +176,10 @@ def create_app() -> FastAPI:
         "http://FTAPB202401622A.yfy.corp:4200",
         "http://FTAPB202401622A:4200",
         "http://10.10.2.155:4200",
+        # === Jason Ouyang 開發環境 ===
+        "http://FTAPA202202918A.yfy.corp:4200",
+        "http://FTAPA202202918A:4200",
+        "http://10.10.2.154:4200",
     ]
 
     app.add_middleware(
