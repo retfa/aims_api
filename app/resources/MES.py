@@ -141,7 +141,7 @@ class amreel_groupby_ptime:
                 AND mname = '"""+ str(mname) +"""'
                 """       
                 query = conn.execute(text(sql))
-                df_Unit_Steam = pd.DataFrame([dict(i) for i in query])                            
+                df_Unit_Steam = pd.DataFrame([dict(i) for i in query])                          
     
             srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
             with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:    
@@ -659,7 +659,7 @@ class amreel_groupby_ptime:
                                 ORDER BY  a.pdate, a.relno
                 """       
                 query = conn.execute(text(sql))
-                df_result = pd.DataFrame([dict(i) for i in query])  
+                df_result = pd.DataFrame([dict(i) for i in query])
                 
             if not df_result.empty:
                 df_result["ptype_two"] = df_result["ptype"].astype(str).str[:2]
@@ -760,8 +760,8 @@ class ERP_SR_summary:
                         and prod not in('3','5','6') 
                     )          
                 """       
-                query = conn.execute(text(sql))  
-                df_batch_no = pd.DataFrame([dict(i) for i in query])           
+                query = conn.execute(text(sql))
+                df_batch_no = pd.DataFrame([dict(i) for i in query])
 
                 sql =   """
                 SELECT 
@@ -859,7 +859,7 @@ class ERP_SR_summary:
                     )          
                 """       
                 query = conn.execute(text(sql))  
-                df_batch_no = pd.DataFrame([dict(i) for i in query])           
+                df_batch_no = pd.DataFrame([dict(i) for i in query])          
 
                 sql =   """
                 SELECT 
@@ -969,7 +969,7 @@ class ERP_SR_summary:
                 group by runno
             """                   
             
-            query = conn.execute(text(sql))  
+            query = conn.execute(text(sql))
             df_roll_type_old = pd.DataFrame([dict(i) for i in query])  # ABD020I1                  
 
             itemNos = df_adwind['winno'].unique().tolist()
@@ -993,7 +993,7 @@ class ERP_SR_summary:
             SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
             """        
             query = conn.execute(text(sql))  
-            df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
+            df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
             
             winno_list = ", ".join([f"'{item}'" for item in list(df_adwind['winno'].unique())])
             sql_td = f"""
@@ -1265,7 +1265,7 @@ class ERP_SH_summary:
                 where y_mk>=YEAR('"""+ str(stime) +"""') AND len(roll_type)=0
                 group by runno
             """
-            query = conn.execute(text(sql))  
+            query = conn.execute(text(sql))
             df_SOLD_TO_CUST_NAME = pd.DataFrame([dict(i) for i in query])  # ABD020I1
             
             if not start_Time or ERPtime:
@@ -1384,7 +1384,7 @@ class ERP_SH_summary:
                 WHERE RowNum = 1; -- 外層再過濾出第一筆
                 """
                 query = conn.execute(text(sql_td))
-                df_TRANSACTION_DATE = pd.DataFrame([dict(i) for i in query])                
+                df_TRANSACTION_DATE = pd.DataFrame([dict(i) for i in query])               
             
             if not df_CHPGTERPDBAAR01_BATCH_NO.empty:
                 df_result = df_result.merge(df_CHPGTERPDBAAR01_BATCH_NO,left_on = ['batch_no','stkno'], 
@@ -1537,7 +1537,7 @@ class ERP_SH_summary:
                 SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
                 """        
                     query = conn.execute(text(sql))  
-                    df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
+                    df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
 
                 df_result = df_result.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
 
@@ -1675,7 +1675,7 @@ class adchem_use_d:
                 order by mname,ym,bdate,sno,cost_id
             """       
             query = conn.execute(text(sql))  
-            df_result = pd.DataFrame([dict(i) for i in query]) 
+            df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
             if k !='rqty':
@@ -1747,7 +1747,7 @@ class adcoat_use_d:
             """            
 
             query = conn.execute(text(sql))  
-            df_result = pd.DataFrame([dict(i) for i in query]) 
+            df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
             if k !='rqty':
@@ -1856,7 +1856,7 @@ class adpulp_use_d:
             """       
             
             query = conn.execute(text(sql))  
-            df_result = pd.DataFrame([dict(i) for i in query]) 
+            df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
             if k !='use_qty':
@@ -1930,7 +1930,7 @@ class adcoat_use_d_amortization:
             """       
             
             query = conn.execute(text(sql))  
-            df_result = pd.DataFrame([dict(i) for i in query]) 
+            df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
             if k not in ['rqty', 'tqty']:
@@ -2008,7 +2008,7 @@ class adchem_use_d_amortization:
             """       
             
             query = conn.execute(text(sql))  
-            df_result = pd.DataFrame([dict(i) for i in query]) 
+            df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
             if k not in ['rqty', 'tqty']:
@@ -2118,7 +2118,7 @@ class adpulp_use_d_amortization:
             """       
             
             query = conn.execute(text(sql))  
-            df_result = pd.DataFrame([dict(i) for i in query]) 
+            df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
             if k not in ['rqty', 'tqty']:
@@ -3598,7 +3598,7 @@ class Yield_daily_report:
                     group by bdate,ptype
                 """       
                 query = conn.execute(text(sql))
-                df_result_width = pd.DataFrame([dict(i) for i in query]) 
+                df_result_width = pd.DataFrame([dict(i) for i in query])
 
                 sql =   """
                     SELECT bdate,ptype,sum(weigh) AS weigh,count(*) as winsno
@@ -3667,7 +3667,7 @@ class Yield_daily_report:
                         group by bdate,relno,winsno,lenth
                 """       
                 query = conn.execute(text(sql))
-                df_result_lenth = pd.DataFrame([dict(i) for i in query])                
+                df_result_lenth = pd.DataFrame([dict(i) for i in query])               
             
             if not df_result_width.empty:
                 df_result_width = df_result_width.merge(df_Ampaper_category.loc[:,['class','ptype']],on = ['ptype'],how='left')
@@ -3785,7 +3785,7 @@ class Yield_daily_report:
                     order by bdate, ptype, dest                
                 """
                 query = conn.execute(text(sql))
-                df_result = pd.DataFrame([dict(i) for i in query])   
+                df_result = pd.DataFrame([dict(i) for i in query])
                 
             return df_result
         
@@ -4196,7 +4196,7 @@ class Relno_production_history:
                     where a.relno=@relno
                 """         
                 query = conn.execute(text(sql), relno = relno)  
-                df_result = pd.DataFrame([dict(i) for i in query])  
+                df_result = pd.DataFrame([dict(i) for i in query])
 
         except Exception as e:
             return {'success': False, 'message': f'Query failed: {str(e)}'}, 500
@@ -4316,7 +4316,7 @@ class Relno_production_history:
 #                 )          
 #             """       
 #             query = conn.execute(text(sql))  
-#             df_batch_no = pd.DataFrame([dict(i) for i in query])           
+#             df_batch_no = pd.DataFrame([dict(i) for i in query])       
             
 #             sql =   """
 #             SELECT 
@@ -4421,7 +4421,7 @@ class Relno_production_history:
 #             SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
 #             """        
 #             query = conn.execute(text(sql))  
-#             df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
+#             df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
             
 #         df_adwind = df_adwind.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
 #         df_adwind['store'] = np.where(
@@ -4855,7 +4855,7 @@ class Relno_production_history:
 
 #         """       
 #         query = conn.execute(text(sql))
-#         df_result_W_quality = pd.DataFrame([dict(i) for i in query])  
+#         df_result_W_quality = pd.DataFrame([dict(i) for i in query]) 
 
 #         df_result_W_quality['s5'] = df_result_W_quality['s5'].astype(float)
 #         df_result_W_quality['s6'] = df_result_W_quality['s6'].astype(float)
@@ -4948,7 +4948,7 @@ class Relno_production_history:
 #             group by bdate,ptype
 #         """       
 #         query = conn.execute(text(sql))
-#         df_result_width = pd.DataFrame([dict(i) for i in query]) 
+#         df_result_width = pd.DataFrame([dict(i) for i in query])
 
 #         sql =   """
 #             SELECT bdate,ptype,sum(weigh) AS weigh,count(*) as winsno
@@ -5017,7 +5017,7 @@ class Relno_production_history:
 #                 group by bdate,relno,winsno,lenth
 #         """       
 #         query = conn.execute(text(sql))
-#         df_result_lenth = pd.DataFrame([dict(i) for i in query])                
+#         df_result_lenth = pd.DataFrame([dict(i) for i in query])             
 
 #     df_result_width = df_result_width.merge(df_Ampaper_category.loc[:,['class','ptype']],on = ['ptype'],how='left')
 #     df_result_weigh = df_result_weigh.merge(df_Ampaper_category.loc[:,['class','ptype']],on = ['ptype'],how='left')
@@ -5196,7 +5196,7 @@ class Relno_production_history:
 #             order by bdate, ptype, dest                
 #         """
 #         query = conn.execute(text(sql))
-#         df_result = pd.DataFrame([dict(i) for i in query])   
+#         df_result = pd.DataFrame([dict(i) for i in query])
 
 #     return df_result
 
