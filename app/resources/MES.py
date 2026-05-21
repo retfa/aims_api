@@ -1195,14 +1195,14 @@ class ERP_SR_summary:
                             "weigh_count_runno_subtotal": weigh_count_runno_subtotal,
                             "weigh_sum_runno_subtotal": weigh_sum_runno_subtotal,
                             "items": items
-                    })
+                        })
 
-                groups.append({
-                    "bdate": bdate,
-                    "weigh_count_subtotal": weigh_count_subtotal,
-                    "weigh_sum_subtotal": weigh_sum_subtotal,
-                    "runno_groups": runno_groups
-                })
+                    groups.append({
+                        "bdate": bdate,
+                        "weigh_count_subtotal": weigh_count_subtotal,
+                        "weigh_sum_subtotal": weigh_sum_subtotal,
+                        "runno_groups": runno_groups
+                    })
 
                 # 全體總結
                 result_json = {
