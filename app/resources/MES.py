@@ -1055,7 +1055,7 @@ class ERP_SH_summary:
             ;with raw_data as
             (
                 select 
-                    a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
+                    a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn
                 from openquery([10.10.1.27],
                 '
                 SELECT * 
@@ -1067,7 +1067,7 @@ class ERP_SH_summary:
 
                 union
 
-                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
+                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn
                 from openquery([10.10.1.27],
                 '
                 SELECT * 
@@ -1281,11 +1281,24 @@ class ERP_SR_detail:
         srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
             sql = f"""
-            SELECT [LOT_NUMBER], MAX([TRANSACTION_DATE]) AS [TRANSACTION_DATE]
-            FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-            WHERE TRANSACTION_DATE BETWEEN '{start_Time}' AND '{end_Time}'
-            AND PREVIOUS_RXID IS NULL AND STATUS_CODE = 'S'
-            GROUP BY [LOT_NUMBER]
+            -- 步驟一：使用 ISNULL 合併兩個欄位，找出指定日期區間內的「實際批號清單」
+            WITH TargetLots AS (
+                SELECT DISTINCT 
+                    ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number]
+                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] <= '{end_Time}'
+                  AND [STATUS_CODE] = 'S'
+                  AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL 
+            )
+            -- 步驟二：拿著這份「實際批號清單」，去大表裡面找出歷史最新時間
+            SELECT 
+                T.[Actual_Lot_Number] AS [LOT_NUMBER],
+                MAX(M.[TRANSACTION_DATE]) AS [TRANSACTION_DATE]
+            FROM TargetLots T
+            JOIN [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST] M 
+              ON T.[Actual_Lot_Number] = ISNULL(M.[LOT_NUMBER], M.[ATTRIBUTE15])
+            WHERE M.[STATUS_CODE] = 'S'
+            GROUP BY T.[Actual_Lot_Number];
             """
             query = conn.execute(text(sql))
             df_250 = pd.DataFrame([dict(i) for i in query])
@@ -1465,7 +1478,6 @@ class ERP_SR_detail:
                     "relno": row["relno"],
                     "winno": row["winno"],
                     "pdate": row["pdate"],
-                    "bdtm": row["bdtm"],
                     "batch_no": row["batch_no"],
                     "ptype": row["ptype"],
                     "pgramg": row["pgramg"],
@@ -1536,11 +1548,24 @@ class ERP_SH_detail:
         srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
             sql = f"""
-            SELECT [LOT_NUMBER], MAX([TRANSACTION_DATE]) AS [TRANSACTION_DATE]
-            FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-            WHERE TRANSACTION_DATE BETWEEN '{start_Time}' AND '{end_Time}'
-            AND PREVIOUS_RXID IS NULL AND STATUS_CODE = 'S'
-            GROUP BY [LOT_NUMBER]
+            -- 步驟一：使用 ISNULL 合併兩個欄位，找出指定日期區間內的「實際批號清單」
+            WITH TargetLots AS (
+                SELECT DISTINCT 
+                    ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number]
+                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] <= '{end_Time}'
+                  AND [STATUS_CODE] = 'S'
+                  AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL 
+            )
+            -- 步驟二：拿著這份「實際批號清單」，去大表裡面找出歷史最新時間
+            SELECT 
+                T.[Actual_Lot_Number] AS [LOT_NUMBER],
+                MAX(M.[TRANSACTION_DATE]) AS [TRANSACTION_DATE]
+            FROM TargetLots T
+            JOIN [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST] M 
+              ON T.[Actual_Lot_Number] = ISNULL(M.[LOT_NUMBER], M.[ATTRIBUTE15])
+            WHERE M.[STATUS_CODE] = 'S'
+            GROUP BY T.[Actual_Lot_Number];
             """
             query = conn.execute(text(sql))
             df_250 = pd.DataFrame([dict(i) for i in query])
@@ -1558,7 +1583,7 @@ class ERP_SH_detail:
             sql = f"""
             ;with raw_data as
             (
-                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
+                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn
                 from openquery([10.10.1.27],
                 '
                 SELECT *
@@ -1570,7 +1595,7 @@ class ERP_SH_detail:
 
                 union
 
-                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
+                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn
                 from openquery([10.10.1.27],
                 '
                 SELECT *
@@ -1662,7 +1687,6 @@ class ERP_SH_detail:
                 items = [{
                     "bhno": row["bhno"],
                     "stkno": row["stkno"],
-                    "bdtm": row["bdtm"],
                     "batch_no": row["batch_no"],
                     "ptype": row["ptype"],
                     "pgramg": row["pgramg"],
