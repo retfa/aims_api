@@ -1477,6 +1477,7 @@ class ERP_SR_detail:
                 items = [{
                     "relno": row["relno"],
                     "winno": row["winno"],
+                    "bdate": row["bdate"],
                     "pdate": row["pdate"],
                     "batch_no": row["batch_no"],
                     "ptype": row["ptype"],
@@ -1687,6 +1688,7 @@ class ERP_SH_detail:
                 items = [{
                     "bhno": row["bhno"],
                     "stkno": row["stkno"],
+                    "bdate": row["bdate"],
                     "batch_no": row["batch_no"],
                     "ptype": row["ptype"],
                     "pgramg": row["pgramg"],
