@@ -740,7 +740,7 @@ class ERP_SR_summary:
             pass
 
         srv_SRVAD1 = self.servers['SRVAD1'] 
-        with srv_SRVAD1['create_engine'][0].connect() as conn: 
+        with srv_SRVAD1['create_engine'][0].connect() as conn:            
             sql =   """
                 SELECT mes_no, batch_no
                 FROM (
@@ -755,13 +755,13 @@ class ERP_SR_summary:
                 WHERE rn = 1 AND mes_no IN (
                     select distinct runno from adwind 
                     where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                    and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
-                    and prod not in('3','5','6') 
+                    and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' 
+                    and prod not in('3','5','6','9') 
                 )          
             """       
             query = conn.execute(text(sql))  
             df_batch_no = pd.DataFrame([dict(i) for i in query])           
-
+            
             sql =   """
             SELECT 
                 *,
@@ -786,7 +786,7 @@ class ERP_SR_summary:
                 (
                     select *,
                     CASE 
-                        WHEN prod IN ('1','9') THEN  
+                        WHEN prod = '1' THEN 
                             CASE 
                                 WHEN LEFT(ptype, 1) = 'H' AND CAST(width AS FLOAT) >= 100 
                                     THEN RIGHT('00' + CAST(CAST(width AS INT) AS VARCHAR), 4) + 'RL00'
@@ -809,9 +809,8 @@ class ERP_SR_summary:
                     WHEN prod = 2 Then '裁切'
                     WHEN prod = 4 Then '中倉'
                     WHEN prod = 7 Then '分條'
-                    WHEN prod = 8 Then '含浸' 
-                    WHEN prod = 9 THEN '成品' END AS pstatus
-
+                    WHEN prod = 8 Then '含浸' END AS pstatus
+                    
                     FROM
                     (
                         select 
@@ -829,8 +828,8 @@ class ERP_SR_summary:
                         from adwind 
                         inner join ampaper b on adwind.ptype = b.ptype
                         where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                        and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
-                        and prod not in('3','5','6') 
+                        and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' 
+                        and prod not in('3','5','6','9') 
                         --order by runno, prod, ptype, pclass, width, pgramg, x_yn, relno, swinno     
                     ) n
                 ) m 
@@ -848,91 +847,89 @@ class ERP_SR_summary:
                     },
                     "groups": []
                 }                        
-                ExecutionTime = time.time() - startTime
-                return result_json                
 
+                ExecutionTime = time.time() - startTime
+
+                return result_json                
+            
+
+#             sql =   """
+#                 SELECT runno,MAX(replace(core_tube_d,'"','')) AS core_tube_d ,MAX(roll_type) AS roll_type,
+#                 MAX(CASE WHEN x_yn = 'Y' THEN SOLD_TO_CUST_NAME ELSE '' END) AS SOLD_TO_CUST_NAME
+#                 FROm adrunt_edit_temp 
+#                 where y_mk>=YEAR('"""+ str(stime) +"""') AND len(roll_type)>0
+#                 group by runno
+#             """       
+            
             sql =   """
                 SELECT runno,MAX(roll_type) AS roll_type
                 FROm adrunt_edit_temp 
                 where y_mk>=YEAR('"""+ str(stime) +"""') AND len(roll_type)>0
                 group by runno
             """                   
+            
             query = conn.execute(text(sql))  
-            df_roll_type_old = pd.DataFrame([dict(i) for i in query])
+            df_roll_type_old = pd.DataFrame([dict(i) for i in query])  # ABD020I1                  
 
             itemNos = df_adwind['winno'].unique().tolist()
+            # 變成 'A','B','C' 格式
             in_clause = ",".join(f"'{x}'" for x in itemNos)
             sql = f"""
                   SELECT winno,
+                  --face AS roll_type, 
                   diam AS core_tube_d,NULL AS SOLD_TO_CUST_NAME
                   FROM [SRVADA1].[ERP-A].[dbo].[AprirolltagT]
                   WHERE winno IN ({in_clause})
             """            
             query = conn.execute(text(sql))  
-            df_roll_type = pd.DataFrame([dict(i) for i in query])
+            df_roll_type = pd.DataFrame([dict(i) for i in query])  # ABD020I1          
+            
             
         srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-            in_list = ", ".join([f"''{item}''" for item in list(df_adwind['itemNo'].unique())])
+            in_list = ", ".join([f"''{item}''" for item in list(df_adwind['itemNo'].unique())])  # 注意雙單引號
             sql = f"""
             SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
             """        
             query = conn.execute(text(sql))  
             df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
-
-            winno_list = ", ".join([f"'{item}'" for item in list(df_adwind['winno'].unique())])
-            sql_td = f"""
-            SELECT [LOT_NUMBER],[TRANSACTION_DATE]
-            FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-            WHERE [LOT_NUMBER] IN ({winno_list})
-            AND [PREVIOUS_RXID] IS NULL
-            AND STATUS_CODE = 'S'
-            """
-            query = conn.execute(text(sql_td))
-            df_TRANSACTION_DATE = pd.DataFrame([dict(i) for i in query])
             
-        df_adwind = df_adwind.merge(df_CHPGTERPDBAAR01, left_on='itemNo', right_on='ITEM_NUMBER', how='left')
+        df_adwind = df_adwind.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
         df_adwind['store'] = np.where(
             df_adwind['CATALOG_ELEM_VAL_010'] == 'NCR',
             'A6FG',
             df_adwind['store']
         )               
+        
         df_adwind['note'] = np.where(
             df_adwind['CATALOG_ELEM_VAL_010'].notna(),
             '',
             '料號不存在，請檢查資料正確性'
         )
         
+        # 將 key 欄位都轉為大寫 20250721新增
         df_adwind['runno'] = df_adwind['runno'].str.upper()
         df_batch_no['mes_no'] = df_batch_no['mes_no'].str.upper()
+        # 20250721新增
         
-        df_adwind_merge = df_adwind.merge(df_batch_no, left_on='runno', right_on='mes_no', how='left')
-        df_adwind_merge = df_adwind_merge.merge(df_roll_type_old, left_on='runno', right_on='runno', how='left')
+        df_adwind_merge = df_adwind.merge(df_batch_no,left_on = 'runno',right_on='mes_no',how = 'left')
+        
+        df_adwind_merge = df_adwind_merge.merge(df_roll_type_old,left_on = 'runno',right_on='runno',how = 'left')
         
         if df_roll_type.empty:
             df_adwind_merge['core_tube_d'] = ''
             df_adwind_merge['SOLD_TO_CUST_NAME'] = ''
         else:
-            df_adwind_merge = df_adwind_merge.merge(df_roll_type, left_on='winno', right_on='winno', how='left')
+            df_adwind_merge = df_adwind_merge.merge(df_roll_type,left_on = 'winno',right_on='winno',how = 'left')
         
         df_adwind_merge['roll_type'] = df_adwind_merge['roll_type'].fillna('')  
         df_adwind_merge['core_tube_d'] = df_adwind_merge['core_tube_d'].fillna('') 
         df_adwind_merge['SOLD_TO_CUST_NAME'] = df_adwind_merge['SOLD_TO_CUST_NAME'].fillna('')
-
-        if not df_TRANSACTION_DATE.empty:
-            df_adwind_merge = df_adwind_merge.merge(df_TRANSACTION_DATE, left_on='winno', right_on='LOT_NUMBER', how='left', suffixes=('', '_td'))
-            df_adwind_merge = df_adwind_merge.drop(columns=['LOT_NUMBER'], errors='ignore')
-            df_adwind_merge['TRANSACTION_DATE'] = df_adwind_merge['TRANSACTION_DATE'].fillna('').astype(str)
-        else:
-            df_adwind_merge['TRANSACTION_DATE'] = ''
-
-        df_adwind_merge['weigh'] = pd.to_numeric(df_adwind_merge['weigh'], errors='coerce').fillna(0)
-
+        
         df_result = df_adwind_merge.groupby(['runno','bdate', 'batch_no', 'ptype', 'pgramg','lenth','width','pclass',
                                              'store','core_tube_d','roll_type','SOLD_TO_CUST_NAME'])\
-            .agg(weigh_sum=('weigh', 'sum'), weigh_count=('weigh', 'count'), note=('note', 'max'),
-                 TRANSACTION_DATE=('TRANSACTION_DATE', 'max'))\
-            .reset_index()     
+            .agg(weigh_sum=('weigh', 'sum'), weigh_count=('weigh', 'count'),note=('note', 'max'))\
+            .reset_index()
         
         for k in list(df_result.columns):
             if k not in ['weigh_count','weigh_sum']:
@@ -941,6 +938,7 @@ class ERP_SR_summary:
                 df_result[k] = df_result[k].astype(float)
             
         if not df_result.empty:
+            # 確保 T 欄位為 float
             df_result["weigh_count"] = df_result["weigh_count"].astype(float)
             df_result["weigh_sum"] = df_result["weigh_sum"].astype(float)
             
@@ -948,15 +946,15 @@ class ERP_SR_summary:
             grouped_bdate = df_result.groupby('bdate')
 
             for bdate, df_bdate in grouped_bdate:
-                weigh_count_subtotal = float(round(df_bdate["weigh_count"].sum(), 2))
-                weigh_sum_subtotal = float(round(df_bdate["weigh_sum"].sum(), 3))
+                weigh_count_subtotal = round(df_bdate["weigh_count"].sum(), 2)
+                weigh_sum_subtotal = round(df_bdate["weigh_sum"].sum(), 3)
 
                 runno_groups = []
                 grouped_runno = df_bdate.groupby('runno')
 
                 for runno, df_runno in grouped_runno:
-                    weigh_count_runno_subtotal = float(round(df_runno["weigh_count"].sum(), 2))
-                    weigh_sum_runno_subtotal = float(round(df_runno["weigh_sum"].sum(), 3))
+                    weigh_count_runno_subtotal = round(df_runno["weigh_count"].sum(), 2)
+                    weigh_sum_runno_subtotal = round(df_runno["weigh_sum"].sum(), 3)
 
                     items = [{
                         "batch_no": row["batch_no"],
@@ -971,8 +969,7 @@ class ERP_SR_summary:
                         "roll_type": row["roll_type"],
                         "core_tube_d": row["core_tube_d"],
                         "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
-                        "TRANSACTION_DATE": row["TRANSACTION_DATE"],
-                        "note": row["note"]
+                        "note": row["note"],
                     } for _, row in df_runno.iterrows()]
 
                     runno_groups.append({
@@ -989,10 +986,11 @@ class ERP_SR_summary:
                     "runno_groups": runno_groups
                 })
 
+            # 全體總結
             result_json = {
                 "summary": {
-                    "weigh_count_total": float(round(df_result["weigh_count"].sum(), 2)),
-                    "weigh_sum_total": float(round(df_result["weigh_sum"].sum(), 3))
+                    "weigh_count_total": round(df_result["weigh_count"].sum(), 2),
+                    "weigh_sum_total": round(df_result["weigh_sum"].sum(), 3)
                 },
                 "groups": groups
             }            
@@ -1043,39 +1041,41 @@ class ERP_SH_summary:
         with srv_SRVAD1['create_engine'][0].connect() as conn:        
             sql =   """
                 SELECT runno,
+                --MAX(CASE WHEN x_yn = 'Y' THEN SOLD_TO_CUST_NAME ELSE '' END) AS SOLD_TO_CUST_NAME
                 NULL AS SOLD_TO_CUST_NAME
                 FROm adrunt_edit_temp 
                 where y_mk>=YEAR('"""+ str(stime) +"""') AND len(roll_type)=0
                 group by runno
             """
             query = conn.execute(text(sql))  
-            df_SOLD_TO_CUST_NAME = pd.DataFrame([dict(i) for i in query])
+            df_SOLD_TO_CUST_NAME = pd.DataFrame([dict(i) for i in query])  # ABD020I1
             
             sql =   """
             ;with raw_data as
             (
                 select 
-                    a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn
+                    a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
                 from openquery([10.10.1.27],
                 '
                 SELECT * 
                 FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P208_IN_CRE_BATCH_ST] 
                 WHERE Creation_date >= DATEADD(m,-6,getdate()) AND substring(batch_no,10,2) = ''SH'' AND status_code = ''S''
                 ') a
-                inner join adpack b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass <> 'A')
-                where substring(runno,1,1) = """+ str(sub_r) +""" and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.re <> 0
+                inner join adpack b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass <> 'A') --and substring(batch_no,10,2) = 'SH'
+                where substring(runno,1,1) = """+ str(sub_r) +""" and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.re <> 0 --and a.status_code = 'S'
 
                 union
 
-                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn
+                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
                 from openquery([10.10.1.27],
                 '
                 SELECT * 
                 FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P208_IN_CRE_BATCH_ST] 
                 WHERE Creation_date >= dateadd(m,-6,getdate()) AND substring(batch_no,10,2) = ''SH'' AND status_code = ''S''
                 ') a
-                inner join adsel b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass in ('A','P') or b.pclass is null)
-                where substring(runno,1,1) = """+ str(sub_r) +""" and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.nstation not in('SP','WP','WH','SH') and b.re <> 0
+                inner join adsel b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass in ('A','P') or b.pclass is null) --and substring(batch_no,10,2) = 'SH'
+                where substring(runno,1,1) = """+ str(sub_r) +""" and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' and b.nstation not in('SP','WP','WH','SH') and b.re <> 0 --and a.status_code = 'S'
+                --order by runno, batch_no, ptype, psize1, psize2, x_yn, bhno            
             )
             SELECT *,rewt*re*0.0004535924 AS T,
             CASE WHEN x_yn = 'Y' Then '外銷' ELSE '內銷' END AS ExportSales,
@@ -1086,6 +1086,7 @@ class ERP_SH_summary:
             END AS store,
             '4'+ptype+pclass+RIGHT('000' + CAST(CAST(CAST(pgramg AS FLOAT) * 10 AS INT)  AS VARCHAR), 5)+psize1+psize2 AS itemNo
             FROM raw_data
+         
             """       
             query = conn.execute(text(sql))  
             df_result = pd.DataFrame([dict(i) for i in query])
@@ -1100,17 +1101,6 @@ class ERP_SH_summary:
                 """        
                 query = conn.execute(text(sql))
                 df_CHPGTERPDBAAR01_BATCH_NO = pd.DataFrame([dict(i) for i in query])
-
-                stkno_list = ", ".join([f"'{item}'" for item in list(df_result['stkno'].unique())])
-                sql_td = f"""
-                SELECT [LOT_NUMBER],[TRANSACTION_DATE]
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-                WHERE [LOT_NUMBER] IN ({stkno_list})
-                AND [PREVIOUS_RXID] IS NULL
-                AND STATUS_CODE = 'S'
-                """
-                query = conn.execute(text(sql_td))
-                df_TRANSACTION_DATE = pd.DataFrame([dict(i) for i in query])
             
             if not df_CHPGTERPDBAAR01_BATCH_NO.empty:
                 df_result = df_result.merge(df_CHPGTERPDBAAR01_BATCH_NO,left_on = ['batch_no','stkno'], 
@@ -1120,13 +1110,6 @@ class ERP_SH_summary:
             else:
                 df_result['LOT_NUMBER'] = ''
 
-            if not df_TRANSACTION_DATE.empty:
-                df_result = df_result.merge(df_TRANSACTION_DATE, left_on='stkno', right_on='LOT_NUMBER', how='left', suffixes=('', '_td'))
-                df_result = df_result.drop(columns=['LOT_NUMBER_td'], errors='ignore')
-                df_result['TRANSACTION_DATE'] = df_result['TRANSACTION_DATE'].fillna('').astype(str)
-            else:
-                df_result['TRANSACTION_DATE'] = ''
-
             df_result = (
                 df_result.groupby([
                     'runno', 'bdate', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2',
@@ -1135,31 +1118,31 @@ class ERP_SH_summary:
                 .agg({
                     're': 'sum',
                     'T': 'sum',
+                    # count(*) 對應到 group 內的筆數，可以選任何欄位 count
                     'mname': 'count',
-                    'LOT_NUMBER': 'max',
-                    'TRANSACTION_DATE': 'max'
+                    'LOT_NUMBER': 'max'
                 })
-                .rename(columns={'mname': 'amount'})
-            )
-
+                .rename(columns={'mname': 'amount'})  # 把剛剛 count 的欄位改名為 amount
+            )             
+            
             df_result = df_result[
                 ['runno','bdate','batch_no','ptype','pgramg','psize1','psize2','store',
-                 'ExportSales','pclass','rewt','itemNo','re','T','amount','LOT_NUMBER','TRANSACTION_DATE']
-            ]
-
-            df_result = df_result.merge(df_SOLD_TO_CUST_NAME, left_on='runno', right_on='runno', how='left')
+                 'ExportSales','pclass','rewt','itemNo','re','T','amount','LOT_NUMBER']
+            ]         
+            
+            df_result = df_result.merge(df_SOLD_TO_CUST_NAME,left_on = 'runno',right_on='runno',how = 'left')
             df_result['SOLD_TO_CUST_NAME'] = df_result['SOLD_TO_CUST_NAME'].fillna('')
-
-            srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
-            with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-                in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])
+            
+            srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
+            with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:            
+                in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])  # 注意雙單引號
                 sql = f"""
-            SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
-            """
-                query = conn.execute(text(sql))
-                df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
+                SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
+                """        
+                query = conn.execute(text(sql))  
+                df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query]) 
 
-            df_result = df_result.merge(df_CHPGTERPDBAAR01, left_on='itemNo', right_on='ITEM_NUMBER', how='left')
+            df_result = df_result.merge(df_CHPGTERPDBAAR01,left_on = 'itemNo', right_on = 'ITEM_NUMBER',how='left')
 
             df_result['note'] = np.where(
                 df_result['CATALOG_ELEM_VAL_010'].notna(),
@@ -1170,39 +1153,43 @@ class ERP_SH_summary:
                 ),
                 '料號不存在，請檢查資料正確性'
             )
-
+            
             df_result['rewt'] = np.where(
                 df_result['CATALOG_ELEM_VAL_060'].notna(),
                 df_result['CATALOG_ELEM_VAL_060'],
                 df_result['rewt']
             )
-
-            df_result['re'] = pd.to_numeric(df_result['re'], errors='coerce').fillna(0)
-            df_result['rewt'] = pd.to_numeric(df_result['rewt'], errors='coerce').fillna(0)
-            df_result['T'] = df_result['re'] * df_result['rewt'] * 0.0004535924
+            
+            df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
 
             for k in list(df_result.columns):
-                if k not in ['re', 'T']:
+                if k not in ['re','T']:
                     df_result[k] = df_result[k].astype(str)
                 else:
-                    df_result[k] = df_result[k].astype(float)
+                    df_result[k] = df_result[k].astype(float)                
 
+            # 確保 T 欄位為 float
             df_result["re"] = df_result["re"].astype(float)
             df_result["T"] = df_result["T"].astype(float)
+            
 
-            re_total = float(round(df_result["re"].sum(), 2))
-            T_total = float(round(df_result["T"].sum(), 3))
+            # 計算總計
+            re_total = round(df_result["re"].sum(), 2)
+            T_total = round(df_result["T"].sum(), 3)
+            
 
+            # 依照 bdate, runno, batch_no 分組後，組出 groups 陣列
             groups = []
             grouped = df_result.groupby(['bdate'])
 
             for bdate, group in grouped:
-                re_subtotal = float(round(group["re"].sum(), 2))
-                T_subtotal = float(round(group["T"].sum(), 3))
+                re_subtotal = round(group["re"].sum(), 2)
+                T_subtotal = round(group["T"].sum(), 3)
+                
 
                 items = [{
                     "runno": row["runno"],
-                    "batch_no": row["batch_no"],
+                    "batch_no": row["batch_no"],                    
                     "ptype": row["ptype"],
                     "pgramg": row["pgramg"],
                     "psize1": row["psize1"],
@@ -1215,7 +1202,6 @@ class ERP_SH_summary:
                     "T": str(row["T"]),
                     "amount": row["amount"],
                     "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
-                    "TRANSACTION_DATE": row["TRANSACTION_DATE"],
                     "note": row["note"]
                 } for _, row in group.iterrows()]
 
@@ -1241,7 +1227,7 @@ class ERP_SH_summary:
                     "T_total": 0
                 },
                 "groups": []
-            }
+            }            
 
         ExecutionTime = time.time() - startTime
 
