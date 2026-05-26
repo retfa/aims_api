@@ -54,14 +54,10 @@ async def get_erp_sr_summary(
     stime: str = Query(None, alias="stime", description="起始日期，格式yyyy-mm-dd"),
     etime: str = Query(None, alias="etime", description="結束日期，格式yyyy-mm-dd"),
     mname: str = Query(None, alias="mname", description="格式 18、19、20、21"),
-    start_Time: str = Query(None, alias="startTime", description="起始時間，格式yyyy-mm-dd hh:mm:ss"),
-    end_Time: str = Query(None, alias="endTime", description="結束時間，格式yyyy-mm-dd hh:mm:ss"), 
-    detail: bool = Query(False, alias="detail", description="true明細表，false彙總表(預設)"),
-    ERPtime: bool = Query(False, alias="ERPtime", description="detail=true時有效，true以TRANSACTION_DATE分組，false以pdate分組(預設)"),    
     svc: MESService = Depends(get_service)
 ):
     logging.info(f"開始查詢 ERP_SR_summary: {stime} ~ {etime} for {mname}")
-    result = await run_in_thread(svc.get_erp_sr_summary, stime, etime, mname, start_Time, end_Time, detail, ERPtime)
+    result = await run_in_thread(svc.get_erp_sr_summary, stime, etime, mname)
     logging.info(f"查詢完成 ERP_SR_summary: {stime} ~ {etime} for {mname}")
     return JSONResponse(content=result)
 
@@ -77,19 +73,53 @@ async def get_erp_sh_summary(
     stime: str = Query(None, alias="stime", description="起始日期，格式yyyy-mm-dd"),
     etime: str = Query(None, alias="etime", description="結束日期，格式yyyy-mm-dd"),
     mname: str = Query(None, alias="mname", description="格式 18、19、20、21"),
-    start_Time: str = Query(None, alias="startTime", description="起始時間，格式yyyy-mm-dd hh:mm:ss"),
-    end_Time: str = Query(None, alias="endTime", description="結束時間，格式yyyy-mm-dd hh:mm:ss"), 
-    detail: bool = Query(False, alias="detail", description="true明細表，false彙總表(預設)"),
-    ERPtime: bool = Query(False, alias="ERPtime", description="detail=true時有效，true以TRANSACTION_DATE分組，false以bdtm分組(預設)"),
     svc: MESService = Depends(get_service)
 ):
     logging.info(f"開始查詢 ERP_SH_summary: {stime} ~ {etime} for {mname}")
-    result = await run_in_thread(svc.get_erp_sh_summary, stime, etime, mname, start_Time, end_Time, detail, ERPtime)
+    result = await run_in_thread(svc.get_erp_sh_summary, stime, etime, mname)
     logging.info(f"查詢完成 ERP_SH_summary: {stime} ~ {etime} for {mname}")
     return JSONResponse(content=result)
 
 @router.post("/ERP_SH_summary")
 def post_erp_sh_summary():
+    return JSONResponse(content={"success": False, "message": "Please use GET"})
+
+@router.get("/ERP_SR_detail",
+    summary="查詢 MES 的 ERP_SR 明細資訊",
+    description="透過 TRANSACTION_DATE 區間查詢 ERP_SR 明細資訊"
+)
+async def get_erp_sr_detail(
+    start_Time: str = Query(None, alias="startTime", description="起始時間，格式yyyy-mm-dd hh:mm:ss"),
+    end_Time: str = Query(None, alias="endTime", description="結束時間，格式yyyy-mm-dd hh:mm:ss"),
+    mname: str = Query(None, alias="mname", description="格式 18、19、20、21"),
+    svc: MESService = Depends(get_service)
+):
+    logging.info(f"開始查詢 ERP_SR_detail: {start_Time} ~ {end_Time} for {mname}")
+    result = await run_in_thread(svc.get_erp_sr_detail, start_Time, end_Time, mname)
+    logging.info(f"查詢完成 ERP_SR_detail: {start_Time} ~ {end_Time} for {mname}")
+    return JSONResponse(content=result)
+
+@router.post("/ERP_SR_detail")
+def post_erp_sr_detail():
+    return JSONResponse(content={"success": False, "message": "Please use GET"})
+
+@router.get("/ERP_SH_detail",
+    summary="查詢 MES 的 ERP_SH 明細資訊",
+    description="透過 TRANSACTION_DATE 區間查詢 ERP_SH 明細資訊"
+)
+async def get_erp_sh_detail(
+    start_Time: str = Query(None, alias="startTime", description="起始時間，格式yyyy-mm-dd hh:mm:ss"),
+    end_Time: str = Query(None, alias="endTime", description="結束時間，格式yyyy-mm-dd hh:mm:ss"),
+    mname: str = Query(None, alias="mname", description="格式 18、19、20、21"),
+    svc: MESService = Depends(get_service)
+):
+    logging.info(f"開始查詢 ERP_SH_detail: {start_Time} ~ {end_Time} for {mname}")
+    result = await run_in_thread(svc.get_erp_sh_detail, start_Time, end_Time, mname)
+    logging.info(f"查詢完成 ERP_SH_detail: {start_Time} ~ {end_Time} for {mname}")
+    return JSONResponse(content=result)
+
+@router.post("/ERP_SH_detail")
+def post_erp_sh_detail():
     return JSONResponse(content={"success": False, "message": "Please use GET"})
 
 # ------------------ 日化工用量 ------------------

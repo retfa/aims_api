@@ -8,6 +8,8 @@ from resources.MES import (
     amreel_groupby_ptime, 
     ERP_SR_summary, 
     ERP_SH_summary,
+    ERP_SR_detail,
+    ERP_SH_detail,
     adchem_use_d,
     adcoat_use_d,
     adpulp_use_d,
@@ -27,6 +29,8 @@ class MESService:
         self.amreel_fetcher = amreel_groupby_ptime(servers)
         self.erp_sr_fetcher = ERP_SR_summary(servers)
         self.erp_sh_fetcher = ERP_SH_summary(servers)
+        self.erp_sr_detail_fetcher = ERP_SR_detail(servers)
+        self.erp_sh_detail_fetcher = ERP_SH_detail(servers)
 
         self.adchem_use_d_fetcher = adchem_use_d(servers)
         self.adcoat_use_d_fetcher = adcoat_use_d(servers)
@@ -45,11 +49,17 @@ class MESService:
     def get_amreel_groupby_ptime(self, stime, etime, mname, machine_code=None):
         return self.amreel_fetcher.fetch(stime=stime, etime=etime, mname=mname, MachineCode=machine_code)
 
-    def get_erp_sr_summary(self, stime, etime, mname, start_Time, end_Time, detail=False, ERPtime=False):
-        return self.erp_sr_fetcher.fetch(stime=stime, etime=etime, mname=mname, start_Time=start_Time, end_Time=end_Time, detail=detail, ERPtime=ERPtime)
+    def get_erp_sr_summary(self, stime, etime, mname):
+        return self.erp_sr_fetcher.fetch(stime=stime, etime=etime, mname=mname)
 
-    def get_erp_sh_summary(self, stime, etime, mname, start_Time, end_Time, detail=False, ERPtime=False):
-        return self.erp_sh_fetcher.fetch(stime=stime, etime=etime, mname=mname, start_Time=start_Time, end_Time=end_Time, detail=detail, ERPtime=ERPtime)
+    def get_erp_sh_summary(self, stime, etime, mname):
+        return self.erp_sh_fetcher.fetch(stime=stime, etime=etime, mname=mname)
+
+    def get_erp_sr_detail(self, start_Time, end_Time, mname):
+        return self.erp_sr_detail_fetcher.fetch(start_Time=start_Time, end_Time=end_Time, mname=mname)
+
+    def get_erp_sh_detail(self, start_Time, end_Time, mname):
+        return self.erp_sh_detail_fetcher.fetch(start_Time=start_Time, end_Time=end_Time, mname=mname)
     
     def get_adchem_use_d(self, stime, etime, mname):
         return self.adchem_use_d_fetcher.fetch(stime, etime, mname)
