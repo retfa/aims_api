@@ -329,3 +329,21 @@ def get_relno_history(
 def post_relno_history():
     return JSONResponse(content={"success": False, "message": "Please use GET"})
 
+
+@router.get("/Vehicles-daily-schedule", summary="查詢 MES 的 原物料廠商出車表")
+def get_vehicles_daily_schedule(
+    stime: str = Query(default=None, alias="stime", description="起始日期，格式yyyy-mm-dd"),
+    etime: str = Query(default=None, alias="etime", description="結束日期，格式yyyy-mm-dd"),
+    mname: str = Query(default=None, alias="mname", description="格式 18、19、20、21"),
+    svc: MESService = Depends(get_service)
+):
+    result = svc.get_vehicles_daily_schedule(stime, etime, mname)
+    return JSONResponse(content=result, media_type="application/json")
+
+@router.post("/Vehicles-daily-schedule",
+    summary="查詢 MES 的 原物料廠商出車表",
+    description="請使用 GET 查詢 MES 的 原物料廠商出車表"
+)
+def POST_vehicles_daily_schedule():
+    return JSONResponse(content={'success': False, 'message': 'Please use GET'})
+
