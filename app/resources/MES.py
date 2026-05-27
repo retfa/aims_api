@@ -1444,6 +1444,9 @@ class ERP_SR_detail:
         df_adwind_merge = df_adwind_merge.merge(df_250, left_on='winno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
         df_adwind_merge = df_adwind_merge.drop(columns=['LOT_NUMBER'], errors='ignore')
         df_adwind_merge['TRANSACTION_DATE'] = df_adwind_merge['TRANSACTION_DATE'].fillna('').astype(str)
+        df_adwind_merge['TRANSACTION_DATE_DATE'] = pd.to_datetime(
+            df_adwind_merge['TRANSACTION_DATE'], errors='coerce'
+        ).dt.strftime('%Y-%m-%d').fillna('')
 
         df_adwind_merge['weigh'] = pd.to_numeric(df_adwind_merge['weigh'], errors='coerce').fillna(0)
 
@@ -1477,6 +1480,7 @@ class ERP_SR_detail:
                     "core_tube_d": row["core_tube_d"],
                     "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
                     "TRANSACTION_DATE": row["TRANSACTION_DATE"],
+                    "TRANSACTION_DATE_DATE": row["TRANSACTION_DATE_DATE"],
                     "note": row["note"]
                 } for _, row in df_runno.iterrows()]
 
@@ -1489,6 +1493,7 @@ class ERP_SR_detail:
 
             groups.append({
                 "TRANSACTION_DATE": td,
+                "TRANSACTION_DATE_DATE": str(td)[:10],
                 "weigh_count_subtotal": weigh_count_subtotal,
                 "weigh_sum_subtotal": weigh_sum_subtotal,
                 "runno_groups": runno_groups
@@ -1615,6 +1620,9 @@ class ERP_SH_detail:
         df_result = df_result.merge(df_250, left_on='stkno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
         df_result = df_result.drop(columns=['LOT_NUMBER'], errors='ignore')
         df_result['TRANSACTION_DATE'] = df_result['TRANSACTION_DATE'].fillna('').astype(str)
+        df_result['TRANSACTION_DATE_DATE'] = pd.to_datetime(
+            df_result['TRANSACTION_DATE'], errors='coerce'
+        ).dt.strftime('%Y-%m-%d').fillna('')
 
         # OPENQUERY for CATALOG_ELEM_VAL_010/060
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
@@ -1688,6 +1696,7 @@ class ERP_SH_detail:
                     "T": str(row["T"]),
                     "LOT_NUMBER": row["LOT_NUMBER"],
                     "TRANSACTION_DATE": row["TRANSACTION_DATE"],
+                    "TRANSACTION_DATE_DATE": row["TRANSACTION_DATE_DATE"],
                     "note": row["note"]
                 } for _, row in df_runno.iterrows()]
 
@@ -1700,6 +1709,7 @@ class ERP_SH_detail:
 
             groups.append({
                 "TRANSACTION_DATE": td,
+                "TRANSACTION_DATE_DATE": str(td)[:10],
                 "re_subtotal": re_subtotal,
                 "T_subtotal": T_subtotal,
                 "runno_groups": runno_groups
