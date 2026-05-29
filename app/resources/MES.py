@@ -1708,6 +1708,7 @@ class ERP_SH_detail:
                     "LOT_NUMBER": row["LOT_NUMBER"],
                     "TRANSACTION_DATE": row["TRANSACTION_DATE"],
                     "TRANSACTION_DATE_DATE": row["TRANSACTION_DATE_DATE"],
+                    "bdtm": row["bdtm"],
                     "note": row["note"]
                 } for _, row in df_runno.iterrows()]
 
