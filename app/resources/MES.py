@@ -1586,7 +1586,7 @@ class ERP_SH_detail:
             sql = f"""
             ;with raw_data as
             (
-                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn
+                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
                 from openquery([10.10.1.27],
                 '
                 SELECT *
@@ -1598,7 +1598,7 @@ class ERP_SH_detail:
 
                 union
 
-                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn
+                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
                 from openquery([10.10.1.27],
                 '
                 SELECT *
