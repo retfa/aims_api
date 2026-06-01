@@ -4374,15 +4374,17 @@ class vehicles_daily_schedule:
                   ,[note]
                   ,[company]
                   ,[category]
-              FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_schedule]
-            where [vehicles_daily_schedule].weigh_date between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
+                  ,[item_no]
+                  ,[erp_version]
+              FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
+            where [vehicles_daily_dispatch].weigh_date between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
             order by weigh_date,serial_no
             """       
             query = conn.execute(text(sql))  
             df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
-            if k not in ['serial_no']:
+            if k not in ['serial_no','item_no']:
                 df_result[k] = df_result[k].astype(str)
             
         if not df_result.empty:
@@ -4403,9 +4405,12 @@ class vehicles_daily_schedule:
                     "order_no": order_no,
                     "note": note,
                     "comp": comp,
-                    "cat": cat
+                    "cat": cat,
+                    "itno": itno,
+                    "erp_ver": erp_ver
                 } 
-                for wdate, sno, payload, load_loc, owner, v_id, unload_loc, in_time, unload_time, cp_wt, fac_wt, pay_wt, order_no, note, comp, cat in zip(
+                for wdate, sno, payload, load_loc, owner, v_id, unload_loc, in_time, unload_time, 
+                    cp_wt, fac_wt, pay_wt, order_no, note, comp, cat, itno, erp_ver in zip(
                     df_result["weigh_date"],
                     df_result["serial_no"],
                     df_result["payload"],
@@ -4421,7 +4426,9 @@ class vehicles_daily_schedule:
                     df_result["order_no"],
                     df_result["note"],
                     df_result["company"],
-                    df_result["category"]
+                    df_result["category"],
+                    df_result["item_no"],
+                    df_result["erp_version"]
                 )
             ]
         else:
@@ -4430,6 +4437,65 @@ class vehicles_daily_schedule:
         ExecutionTime = time.time() - startTime
 
         return result_json
+    
+    def refresh(self, stime, etime, mname):
+        startTime = time.time()
+
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
+
+        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
+
+            sql = f"""
+            ;WITH Update_data AS
+            (
+                SELECT 
+                    id,weigh_date,vehicle_id,
+                    CASE WHEN tickets IS NOT NULL THEN tickets ELSE cp_wt END AS cp_wt,
+                    factory_wt,
+                    CASE 
+                        WHEN tickets IS NOT NULL 
+                            THEN CASE WHEN tickets < factory_wt THEN tickets ELSE factory_wt END
+                        ELSE CASE WHEN cp_wt < factory_wt THEN cp_wt ELSE factory_wt END
+                    END AS pay_wt,
+                    tickets
+                FROM
+                (
+                  SELECT 
+                    d.*,
+                    CAST(ROUND(t.net_wt / 1000.0,2) AS DECIMAL(18,2)) as tickets
+                  FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] d
+                  LEFT JOIN [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets] t 
+                    ON d.weigh_date = t.weigh_date 
+                   AND t.vehicle_id = d.vehicle_id
+                  WHERE t.weigh_date between '{stime}' and '{etime}'
+                ) t
+            )
+
+            UPDATE [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
+            SET cp_wt = Update_data.cp_wt,
+                pay_wt = Update_data.pay_wt
+            FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
+            INNER JOIN Update_data 
+                ON vehicles_daily_dispatch.id = Update_data.id;
+
+
+            UPDATE t
+            SET t.vehicle_dispatch_id = d.id
+            FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets] t
+            INNER JOIN [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] d 
+                ON t.weigh_date = d.weigh_date 
+               AND t.vehicle_id = d.vehicle_id
+            WHERE t.weigh_date between '{stime}' and '{etime}'
+              AND d.cp_wt IS NOT NULL;
+            """
+
+            conn.execute(text(sql))
+
+        return {
+            "success": True,
+            "message": "refresh done",
+            "time": time.time() - startTime
+        }
 
 
 # In[ ]:

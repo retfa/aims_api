@@ -98,5 +98,8 @@ class MESService:
         return self.relno_fetcher.fetch(relno=relno)    
     
     def get_vehicles_daily_schedule(self, stime, etime, mname):
-        return self.vehicles_daily_schedule_fetcher.fetch(stime, etime, mname)    
+        return self.vehicles_daily_schedule_fetcher.fetch(stime, etime, mname)
+    
+    def refresh_vehicles_daily_schedule(self, stime, etime, mname):
+        return self.vehicles_daily_schedule_fetcher.refresh(stime, etime, mname)
 

@@ -347,3 +347,12 @@ def get_vehicles_daily_schedule(
 def POST_vehicles_daily_schedule():
     return JSONResponse(content={'success': False, 'message': 'Please use GET'})
 
+@router.post("/Vehicles-daily-schedule-refresh")
+def refresh_schedule(
+    stime: str = Query(None),
+    etime: str = Query(None),
+    mname: str = Query(None),
+    svc: MESService = Depends(get_service)
+):
+    return svc.refresh_vehicles_daily_schedule(stime, etime, mname)
+
