@@ -1489,7 +1489,8 @@ class ERP_SR_detail:
                     "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
                     "TRANSACTION_DATE": row["TRANSACTION_DATE"],
                     "TRANSACTION_DATE_DATE": row["TRANSACTION_DATE_DATE"],
-                    "note": row["note"]
+                    "note": row["note"],
+                    "p9to1_usr": row.get("p9to1", "")
                 } for _, row in df_runno.iterrows()]
 
                 runno_groups.append({
