@@ -1451,7 +1451,7 @@ class ERP_SR_detail:
         if 'p9to1_usr' in df_adwind_merge.columns:
             df_adwind_merge['p9to1_usr'] = df_adwind_merge['p9to1_usr'].fillna('')
         else:
-            df_adwind_merge['p9to1_usr'] = ''
+            df_adwind_merge['p9to1_usr'] = ''        
 
         df_adwind_merge = df_adwind_merge.merge(df_250, left_on='winno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
         df_adwind_merge = df_adwind_merge.drop(columns=['LOT_NUMBER'], errors='ignore')
