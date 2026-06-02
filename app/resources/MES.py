@@ -1448,6 +1448,10 @@ class ERP_SR_detail:
         df_adwind_merge['roll_type'] = df_adwind_merge['roll_type'].fillna('')
         df_adwind_merge['core_tube_d'] = df_adwind_merge['core_tube_d'].fillna('')
         df_adwind_merge['SOLD_TO_CUST_NAME'] = df_adwind_merge['SOLD_TO_CUST_NAME'].fillna('')
+        if 'p9to1_usr' in df_adwind_merge.columns:
+            df_adwind_merge['p9to1_usr'] = df_adwind_merge['p9to1_usr'].fillna('')
+        else:
+            df_adwind_merge['p9to1_usr'] = ''
 
         df_adwind_merge = df_adwind_merge.merge(df_250, left_on='winno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
         df_adwind_merge = df_adwind_merge.drop(columns=['LOT_NUMBER'], errors='ignore')
@@ -1490,7 +1494,7 @@ class ERP_SR_detail:
                     "TRANSACTION_DATE": row["TRANSACTION_DATE"],
                     "TRANSACTION_DATE_DATE": row["TRANSACTION_DATE_DATE"],
                     "note": row["note"],
-                    "p9to1_usr": row.get("p9to1", "")
+                    "p9to1_usr": row["p9to1_usr"]
                 } for _, row in df_runno.iterrows()]
 
                 runno_groups.append({
