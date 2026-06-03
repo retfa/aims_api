@@ -7,6 +7,7 @@
 from fastapi import APIRouter, Query, Depends
 from fastapi.responses import JSONResponse
 from services.mes_service import MESService
+from schemas.mes_schema import ScaleWeighPatchBody
 
 import logging
 
@@ -355,4 +356,21 @@ def refresh_schedule(
     svc: MESService = Depends(get_service)
 ):
     return svc.refresh_vehicles_daily_schedule(stime, etime, mname)
+
+@router.get("/Scale-weigh-tickets", summary="查詢 MES 的 地磅磅單")
+def get_Scale_weigh_tickets(
+    stime: str = Query(default=None, alias="stime", description="起始日期，格式yyyy-mm-dd"),
+    etime: str = Query(default=None, alias="etime", description="結束日期，格式yyyy-mm-dd"),
+    mname: str = Query(default=None, alias="mname", description="格式 18、19、20、21"),
+    svc: MESService = Depends(get_service)
+):
+    result = svc.get_scale_weigh_tickets(stime, etime, mname)
+    return JSONResponse(content=result, media_type="application/json")
+
+@router.patch("/Scale-weigh-tickets", summary="綁定 / 解除地磅單")
+def patch_Scale_weigh_tickets(
+    body: ScaleWeighPatchBody,
+    svc: MESService = Depends(get_service)
+):
+    return svc.patch_scale_weigh_tickets(body)
 

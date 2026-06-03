@@ -21,7 +21,8 @@ from resources.MES import (
     Defect_induced_recycle_chart,
     Yield_daily_report,
     Relno_production_history,
-    vehicles_daily_schedule
+    vehicles_daily_schedule,
+    scale_weigh_tickets
 )
 
 class MESService:
@@ -48,6 +49,8 @@ class MESService:
         self.relno_fetcher = Relno_production_history(servers=servers) 
         
         self.vehicles_daily_schedule_fetcher = vehicles_daily_schedule(servers=servers)
+        
+        self.scale_weigh_tickets_fetcher = scale_weigh_tickets(servers=servers)
 
     def get_amreel_groupby_ptime(self, stime, etime, mname, machine_code=None):
         return self.amreel_fetcher.fetch(stime=stime, etime=etime, mname=mname, MachineCode=machine_code)
@@ -102,4 +105,10 @@ class MESService:
     
     def refresh_vehicles_daily_schedule(self, stime, etime, mname):
         return self.vehicles_daily_schedule_fetcher.refresh(stime, etime, mname)
+    
+    def get_scale_weigh_tickets(self, stime, etime, mname):
+        return self.scale_weigh_tickets_fetcher.fetch(stime, etime, mname)
+    
+    def patch_scale_weigh_tickets(self, body: dict):
+        return self.scale_weigh_tickets_fetcher.patch(body)  
 

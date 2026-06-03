@@ -4362,7 +4362,8 @@ class vehicles_daily_schedule:
         srv_SRVMESDBA1 = self.servers['SRVMESDBA1'] 
         with srv_SRVMESDBA1['create_engine'][0].connect() as conn:        
             sql =   """
-                SELECT TOP (1000) [weigh_date]
+                SELECT TOP (1000) [id]
+                  ,[weigh_date]
                   ,[serial_no]
                   ,[payload]
                   ,[loading_location]
@@ -4394,6 +4395,7 @@ class vehicles_daily_schedule:
         if not df_result.empty:
             result_json = [
                 {
+                    "id": t_id,
                     "wdate": wdate,
                     "sno": sno,
                     "payload": payload,
@@ -4413,8 +4415,9 @@ class vehicles_daily_schedule:
                     "itno": itno,
                     "erp_ver": erp_ver
                 } 
-                for wdate, sno, payload, load_loc, owner, v_id, unload_loc, in_time, unload_time, 
+                for t_id, wdate, sno, payload, load_loc, owner, v_id, unload_loc, in_time, unload_time, 
                     cp_wt, fac_wt, pay_wt, order_no, note, comp, cat, itno, erp_ver in zip(
+                    df_result["id"],
                     df_result["weigh_date"],
                     df_result["serial_no"],
                     df_result["payload"],
@@ -4505,7 +4508,174 @@ class vehicles_daily_schedule:
 # In[ ]:
 
 
+class scale_weigh_tickets:
+    def __init__(self, servers):
+        self.servers = servers     
+    
+    def fetch(self, stime: str, etime: str, mname: str):  
+        startTime = time.time()
+        
+        if not stime:
+            return {'success': False, 'message': 'Missing stime parameter'}
+        if not etime:
+            return {'success': False, 'message': 'Missing etime parameter'}        
+#         if not mname:
+#             return {'success': False, 'message': 'Missing mname parameter'} 
+        
+#         if mname == "18":
+#             sub_r = "'R'"
+#         elif mname == "19":
+#             sub_r = "'S'"
+#         elif mname == "20":
+#             sub_r = "'T'"
+#         elif mname == "21":
+#             sub_r = "'W'"
+#         else:
+#             pass        
 
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1'] 
+        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:        
+            sql =   """
+            SELECT TOP (1000) [station_name]
+                  ,[weigh_date]
+                  ,[serial_no]
+                  ,[in_time]
+                  ,[out_time]
+                  ,[vehicle_id]
+                  ,[gross_wt]
+                  ,[tare_wt]
+                  ,[net_wt]
+                  ,[payload]
+                  ,[vehicle_dispatch_id] AS vehicle_schedule_id
+              FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets]
+              where [scale_weigh_tickets].weigh_date between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
+              order by weigh_date,station_name,serial_no
+            """       
+            query = conn.execute(text(sql))  
+            df_result = pd.DataFrame([dict(i) for i in query])
+        
+        for k in list(df_result.columns):
+            if k not in ['serial_no','vehicle_schedule_id']:
+                df_result[k] = df_result[k].astype(str)
+            
+        if not df_result.empty:
+            result_json = df_result.to_dict(orient="records")
+        else:
+            result_json = []
+
+        ExecutionTime = time.time() - startTime
+
+        return result_json
+    
+    def patch(self, body: dict):
+        startTime = time.time()
+
+        # ── 驗證必要欄位 ──────────────────────────────────────────
+        vehicle_schedule_id = body.vehicle_schedule_id
+        link_ids   = body.link_ids   # 要關聯的地磅單主鍵列表
+        unlink_ids = body.unlink_ids   # 要解除關聯的地磅單主鍵列表
+
+        if vehicle_schedule_id is None:
+            return {'success': False, 'message': 'Missing vehicle_schedule_id'}
+        if not isinstance(link_ids, list) or not isinstance(unlink_ids, list):
+            return {'success': False, 'message': 'link_ids and unlink_ids must be lists'}
+        if not link_ids and not unlink_ids:
+            return {'success': False, 'message': 'Nothing to update'}
+
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
+
+        linked_count   = 0
+        unlinked_count = 0
+        
+        errors = []
+
+        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
+            try:
+                # ── 1. 關聯：將選取的地磅單寫入 vehicle_dispatch_id ────
+                for pk in link_ids:
+                    station_name = pk.station_name
+                    weigh_date   = pk.weigh_date
+                    serial_no    = pk.serial_no
+
+                    if station_name is None or weigh_date is None or serial_no is None:
+                        errors.append({
+                            'type': 'link_ids',
+                            'data': pk,
+                            'reason': 'missing required fields'
+                        })
+                        continue
+
+                    sql_link = text("""
+                        UPDATE [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets]
+                        SET    [vehicle_dispatch_id] = :vid
+                        WHERE  [station_name] = :station_name
+                          AND  [weigh_date]   = :weigh_date
+                          AND  [serial_no]    = :serial_no
+                    """)
+                    result = conn.execute(sql_link, {
+                        'vid':          vehicle_schedule_id,
+                        'station_name': station_name,
+                        'weigh_date':   weigh_date,
+                        'serial_no':    serial_no
+                    })
+                    if (result.rowcount or 0) > 0:
+                        linked_count += 1
+                    else:
+                        errors.append({
+                            'type': 'link_failed',
+                            'data': pk,
+                            'reason': 'no rows updated'
+                        })
+
+                # ── 2. 解除關聯：清空 vehicle_dispatch_id ────────────
+                for pk in unlink_ids:
+                    station_name = pk.station_name
+                    weigh_date   = pk.weigh_date
+                    serial_no    = pk.serial_no
+
+                    if station_name is None or weigh_date is None or serial_no is None:
+                        errors.append({
+                            'type': 'unlink_ids',
+                            'data': pk,
+                            'reason': 'missing required fields'
+                        })
+                        continue
+
+                    sql_unlink = text("""
+                        UPDATE [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets]
+                        SET    [vehicle_dispatch_id] = NULL
+                        WHERE  [station_name] = :station_name
+                          AND  [weigh_date]   = :weigh_date
+                          AND  [serial_no]    = :serial_no
+                          AND  [vehicle_dispatch_id] = :vid
+                    """)
+                    # 加上 AND vehicle_dispatch_id = vid 避免誤清其他行車表的關聯
+                    result = conn.execute(sql_unlink, {
+                        'station_name': station_name,
+                        'weigh_date':   weigh_date,
+                        'serial_no':    serial_no,
+                        'vid':          vehicle_schedule_id
+                    })
+                    if (result.rowcount or 0) > 0:
+                        unlinked_count += 1
+                    else:
+                        errors.append({
+                            'type': 'unlink_failed',
+                            'data': pk,
+                            'reason': 'no rows updated (maybe already NULL or mismatched vid)'
+                        })
+
+            except Exception as e:
+                return {'success': False, 'message': str(e)}
+
+        ExecutionTime = time.time() - startTime
+        return {
+            'success':       True,
+            'linked_count':  linked_count,
+            'unlinked_count': unlinked_count,
+            'execution_time': round(ExecutionTime, 4),
+            'errors': errors
+        }
 
 
 # In[ ]:
