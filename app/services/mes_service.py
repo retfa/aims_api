@@ -9,6 +9,7 @@ from resources.MES import (
     ERP_SR_summary, 
     ERP_SH_summary,
     ERP_SR_detail,
+    ERP_SR_prod_groupby,
     ERP_SH_detail,    
     adchem_use_d,
     adcoat_use_d,
@@ -32,6 +33,7 @@ class MESService:
         self.erp_sr_fetcher = ERP_SR_summary(servers)
         self.erp_sh_fetcher = ERP_SH_summary(servers)
         self.erp_sr_detail_fetcher = ERP_SR_detail(servers)
+        self.erp_sr_prod_groupby_fetcher = ERP_SR_prod_groupby(servers)
         self.erp_sh_detail_fetcher = ERP_SH_detail(servers)        
 
         self.adchem_use_d_fetcher = adchem_use_d(servers)
@@ -61,11 +63,14 @@ class MESService:
     def get_erp_sh_summary(self, stime, etime, mname):
         return self.erp_sh_fetcher.fetch(stime=stime, etime=etime, mname=mname)
     
-    def get_erp_sr_detail(self, start_Time, end_Time, mname):
-        return self.erp_sr_detail_fetcher.fetch(start_Time=start_Time, end_Time=end_Time, mname=mname)
+    def get_erp_sr_detail(self, start_Time, end_Time, mname, detail=True):
+        return self.erp_sr_detail_fetcher.fetch(start_Time=start_Time, end_Time=end_Time, mname=mname, detail=detail)
 
-    def get_erp_sh_detail(self, start_Time, end_Time, mname):
-        return self.erp_sh_detail_fetcher.fetch(start_Time=start_Time, end_Time=end_Time, mname=mname)    
+    def get_erp_sr_prod_groupby(self, stime, etime, mname):
+        return self.erp_sr_prod_groupby_fetcher.fetch(stime=stime, etime=etime, mname=mname)
+
+    def get_erp_sh_detail(self, start_Time, end_Time, mname, detail=True):
+        return self.erp_sh_detail_fetcher.fetch(start_Time=start_Time, end_Time=end_Time, mname=mname, detail=detail)    
     
     def get_adchem_use_d(self, stime, etime, mname):
         return self.adchem_use_d_fetcher.fetch(stime, etime, mname)

@@ -93,15 +93,35 @@ async def get_erp_sr_detail(
     start_Time: str = Query(None, alias="startTime", description="起始時間，格式yyyy-mm-dd hh:mm:ss"),
     end_Time: str = Query(None, alias="endTime", description="結束時間，格式yyyy-mm-dd hh:mm:ss"),
     mname: str = Query(None, alias="mname", description="格式 18、19、20、21"),
+    detail: bool = Query(True, alias="detail", description="True=每捲明細, False=彙總"),
     svc: MESService = Depends(get_service)
 ):
     logging.info(f"開始查詢 ERP_SR_detail: {start_Time} ~ {end_Time} for {mname}")
-    result = await run_in_thread(svc.get_erp_sr_detail, start_Time, end_Time, mname)
+    result = await run_in_thread(svc.get_erp_sr_detail, start_Time, end_Time, mname, detail)
     logging.info(f"查詢完成 ERP_SR_detail: {start_Time} ~ {end_Time} for {mname}")
     return JSONResponse(content=result)
 
 @router.post("/ERP_SR_detail")
 def post_erp_sr_detail():
+    return JSONResponse(content={"success": False, "message": "Please use GET"})
+
+@router.get("/ERP_SR_prod_groupby",
+    summary="查詢 MES 的 ERP_SR（依 prod 分群）",
+    description="透過 bdate 區間查詢 ERP_SR，回傳全 prod 的 summary（by prod_label）與 detail"
+)
+async def get_erp_sr_prod_groupby(
+    stime: str = Query(None, alias="stime", description="起始時間，格式yyyy-mm-dd hh:mm:ss"),
+    etime: str = Query(None, alias="etime", description="結束時間，格式yyyy-mm-dd hh:mm:ss"),
+    mname: str = Query(None, alias="mname", description="格式 18、19、20、21"),
+    svc: MESService = Depends(get_service)
+):
+    logging.info(f"開始查詢 ERP_SR_prod_groupby: {stime} ~ {etime} for {mname}")
+    result = await run_in_thread(svc.get_erp_sr_prod_groupby, stime, etime, mname)
+    logging.info(f"查詢完成 ERP_SR_prod_groupby: {stime} ~ {etime} for {mname}")
+    return JSONResponse(content=result)
+
+@router.post("/ERP_SR_prod_groupby")
+def post_erp_sr_prod_groupby():
     return JSONResponse(content={"success": False, "message": "Please use GET"})
 
 @router.get("/ERP_SH_detail",
@@ -112,10 +132,11 @@ async def get_erp_sh_detail(
     start_Time: str = Query(None, alias="startTime", description="起始時間，格式yyyy-mm-dd hh:mm:ss"),
     end_Time: str = Query(None, alias="endTime", description="結束時間，格式yyyy-mm-dd hh:mm:ss"),
     mname: str = Query(None, alias="mname", description="格式 18、19、20、21"),
+    detail: bool = Query(True, alias="detail", description="True=每筆明細, False=彙總"),
     svc: MESService = Depends(get_service)
 ):
     logging.info(f"開始查詢 ERP_SH_detail: {start_Time} ~ {end_Time} for {mname}")
-    result = await run_in_thread(svc.get_erp_sh_detail, start_Time, end_Time, mname)
+    result = await run_in_thread(svc.get_erp_sh_detail, start_Time, end_Time, mname, detail)
     logging.info(f"查詢完成 ERP_SH_detail: {start_Time} ~ {end_Time} for {mname}")
     return JSONResponse(content=result)
 
