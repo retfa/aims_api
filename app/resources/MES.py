@@ -1558,14 +1558,9 @@ class ERP_SR_detail:
                 }
 
         else:
-            df_result = df_adwind_merge.groupby(['prod', 'pstatus', 'runno', 'bdate', 'batch_no', 'ptype', 'pgramg', 'lenth', 'width', 'pclass',
-                                                 'store', 'core_tube_d', 'roll_type', 'SOLD_TO_CUST_NAME'])\
-                .agg(weigh_sum=('weigh', 'sum'), weigh_count=('weigh', 'count'), note=('note', 'max'),
-                     TRANSACTION_DATE=('TRANSACTION_DATE', 'max'),
-                     TRANSACTION_DATE_DATE=('TRANSACTION_DATE_DATE', 'max'),
-                     IS_DUPLICATE=('IS_DUPLICATE', 'max'),
-                     p9to1_usr=('p9to1_usr', 'max'))\
-                .reset_index()
+            df_result = df_adwind_merge.groupby(['prod', 'pstatus', 'runno', 'TRANSACTION_DATE_DATE', 'batch_no', 'ptype', 'pgramg', 'lenth', 'width', 'pclass',
+                                                 'store', 'core_tube_d', 'roll_type'], as_index=False)\
+                .agg(weigh_sum=('weigh', 'sum'), weigh_count=('weigh', 'count'))
 
             for k in list(df_result.columns):
                 if k not in ['weigh_count', 'weigh_sum']:
@@ -1604,12 +1599,7 @@ class ERP_SR_detail:
                             "weigh_count": str(row["weigh_count"]),
                             "weigh_sum": str(row["weigh_sum"]),
                             "roll_type": row["roll_type"],
-                            "core_tube_d": row["core_tube_d"],
-                            "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
-                            "TRANSACTION_DATE": row["TRANSACTION_DATE"],
-                            "note": row["note"],
-                            "p9to1_usr": row["p9to1_usr"],
-                            "IS_DUPLICATE": row["IS_DUPLICATE"]
+                            "core_tube_d": row["core_tube_d"]
                         } for _, row in df_prod.iterrows()]
 
                         prod_groups.append({
