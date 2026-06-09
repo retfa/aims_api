@@ -4869,6 +4869,7 @@ class vehicles_daily_schedule:
                   ,[category]
                   ,[item_no]
                   ,[erp_version]
+                  ,[line_no]
               FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
             where [vehicles_daily_dispatch].weigh_date between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
             order by weigh_date,serial_no
@@ -4877,7 +4878,7 @@ class vehicles_daily_schedule:
             df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
-            if k not in ['serial_no','item_no']:
+            if k not in ['serial_no','item_no','erp_version']:
                 df_result[k] = df_result[k].astype(str)
             
         if not df_result.empty:
@@ -4901,10 +4902,11 @@ class vehicles_daily_schedule:
                     "comp": comp,
                     "cat": cat,
                     "itno": itno,
-                    "erp_ver": erp_ver
+                    "erp_ver": erp_ver,
+                    "lino" : lino
                 } 
                 for t_id, wdate, sno, payload, load_loc, owner, v_id, unload_loc, in_time, unload_time, 
-                    cp_wt, fac_wt, pay_wt, order_no, note, comp, cat, itno, erp_ver in zip(
+                    cp_wt, fac_wt, pay_wt, order_no, note, comp, cat, itno, erp_ver, lino in zip(
                     df_result["id"],
                     df_result["weigh_date"],
                     df_result["serial_no"],
@@ -4923,7 +4925,9 @@ class vehicles_daily_schedule:
                     df_result["company"],
                     df_result["category"],
                     df_result["item_no"],
-                    df_result["erp_version"]
+                    df_result["erp_version"],
+                    df_result["line_no"]   
+                        
                 )
             ]
         else:
@@ -4978,7 +4982,7 @@ class vehicles_daily_schedule:
             SET t.vehicle_dispatch_id = d.id
             FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets] t
             INNER JOIN [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] d 
-                ON t.weigh_date = d.weigh_date 
+                ON t.weigh_date = d.weigh_date
                AND t.vehicle_id = d.vehicle_id
             WHERE t.weigh_date between '{stime}' and '{etime}'
               AND d.cp_wt IS NOT NULL;
@@ -5152,7 +5156,44 @@ class scale_weigh_tickets:
                             'data': pk,
                             'reason': 'no rows updated (maybe already NULL or mismatched vid)'
                         })
+                        
+                # ── 3. 更新 vehicles_daily_dispatch 的 cp_wt / pay_wt ────
+                if vehicle_schedule_id and (linked_count > 0 or unlinked_count > 0):
+                    sql_update = text("""
+                        UPDATE [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
+                        SET
+                            cp_wt  = agg.tickets,
+                            pay_wt = CASE 
+                                         WHEN agg.tickets < d.factory_wt 
+                                         THEN agg.tickets 
+                                         ELSE d.factory_wt 
+                                     END
+                        FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] d
+                        INNER JOIN (
+                            SELECT 
+                                vehicle_dispatch_id,
+                                CAST(ROUND(SUM(net_wt) / 1000.0, 2) AS DECIMAL(18,2)) AS tickets
+                            FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets]
+                            WHERE vehicle_dispatch_id = :vid
+                            GROUP BY vehicle_dispatch_id
+                        ) agg ON d.id = agg.vehicle_dispatch_id
+                        WHERE d.id = :vid
+                    """)
+                    conn.execute(sql_update, {'vid': vehicle_schedule_id})
 
+                    # 若解除關聯後該行車表已無任何地磅單，cp_wt 應清空
+                    sql_reset = text("""
+                        UPDATE [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
+                        SET cp_wt  = NULL,
+                            pay_wt = NULL
+                        WHERE id = :vid
+                          AND NOT EXISTS (
+                              SELECT 1 
+                              FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets]
+                              WHERE vehicle_dispatch_id = :vid
+                          )
+                    """)
+                    conn.execute(sql_reset, {'vid': vehicle_schedule_id})                
             except Exception as e:
                 return {'success': False, 'message': str(e)}
 
