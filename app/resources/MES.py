@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
 
 
 import pandas as pd
@@ -19,14 +18,12 @@ from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
 
-# In[2]:
 
 
 import logging
 logger = logging.getLogger(__name__)  # 取得和主程式共用的 logger
 
 
-# In[2]:
 
 
 import sqlalchemy
@@ -45,7 +42,6 @@ def mapping_df_types(df):
     return dtypedict
 
 
-# In[4]:
 
 
 class amreel_groupby_ptime:
@@ -707,7 +703,6 @@ class amreel_groupby_ptime:
         return result_json
 
 
-# In[5]:
 
 
 class ERP_SR_summary:
@@ -1017,7 +1012,6 @@ class ERP_SR_summary:
         return result_json
 
 
-# In[6]:
 
 
 class ERP_SH_summary:
@@ -1239,7 +1233,6 @@ class ERP_SH_summary:
         return result_json
 
 
-# In[ ]:
 
 
 class ERP_SR_detail:
@@ -1637,7 +1630,6 @@ class ERP_SR_detail:
         return result_json
 
 
-# In[ ]:
 
 
 class ERP_SR_prod_groupby:
@@ -1888,7 +1880,6 @@ class ERP_SR_prod_groupby:
         return result_json
 
 
-# In[ ]:
 
 
 class ERP_SH_detail:
@@ -2235,7 +2226,6 @@ class ERP_SH_detail:
         return result_json
 
 
-# In[7]:
 
 
 class adchem_use_d:
@@ -2302,7 +2292,6 @@ class adchem_use_d:
         return result_json
 
 
-# In[8]:
 
 
 class adcoat_use_d:
@@ -2373,7 +2362,6 @@ class adcoat_use_d:
         return result_json
 
 
-# In[9]:
 
 
 class adpulp_use_d:
@@ -2483,7 +2471,6 @@ class adpulp_use_d:
         return result_json
 
 
-# In[10]:
 
 
 class adcoat_use_d_amortization:
@@ -2560,7 +2547,6 @@ class adcoat_use_d_amortization:
         return result_json
 
 
-# In[11]:
 
 
 class adchem_use_d_amortization:
@@ -2638,7 +2624,6 @@ class adchem_use_d_amortization:
         return result_json
 
 
-# In[12]:
 
 
 class adpulp_use_d_amortization:
@@ -2748,13 +2733,11 @@ class adpulp_use_d_amortization:
         return result_json
 
 
-# In[13]:
 
 
 # 紙別銷售類別
 
 
-# In[14]:
 
 
 class Ampaper_category:
@@ -3065,7 +3048,6 @@ class Ampaper_category:
         return result_json
 
 
-# In[15]:
 
 
 class Defect_induced_recycle_analysis_report:
@@ -3446,7 +3428,6 @@ class Defect_induced_recycle_analysis_report:
         return result_json
 
 
-# In[16]:
 
 
 class Defect_induced_recycle_chart:
@@ -3717,13 +3698,11 @@ class Defect_induced_recycle_chart:
         return result_json           
 
 
-# In[17]:
 
 
 # 加工良率每日報表
 
 
-# In[31]:
 
 
 class Yield_daily_report:
@@ -4709,7 +4688,6 @@ class Yield_daily_report:
         return result_json
 
 
-# In[19]:
 
 
 class Relno_production_history:
@@ -4822,7 +4800,6 @@ class Relno_production_history:
         return result_json
 
 
-# In[ ]:
 
 
 class vehicles_daily_schedule:
@@ -5000,7 +4977,6 @@ class vehicles_daily_schedule:
         }
 
 
-# In[ ]:
 
 
 class scale_weigh_tickets:
@@ -5210,13 +5186,11 @@ class scale_weigh_tickets:
         }
 
 
-# In[ ]:
 
 
 
 
 
-# In[41]:
 
 
 # from sqlalchemy import create_engine
@@ -5259,7 +5233,6 @@ class scale_weigh_tickets:
 # df_SERVER_CHPGTERPDBAAR01['cnx'][0] = df_SERVER_CHPGTERPDBAAR01['create_engine'][0].connect() 
 
 
-# In[42]:
 
 
 # stime = '2026-03-10'
@@ -5267,7 +5240,6 @@ class scale_weigh_tickets:
 # mname = '21'
 
 
-# In[43]:
 
 
 #         if mname == "18":
@@ -5445,14 +5417,12 @@ class scale_weigh_tickets:
 #             .reset_index()
 
 
-# In[44]:
 
 
 # with pd.option_context('display.max_rows', 1000, 'display.max_columns', None):
 #     display(df_result)
 
 
-# In[45]:
 
 
 # stime = '2026-03-10'
@@ -5461,7 +5431,6 @@ class scale_weigh_tickets:
 # Product_Category = '格拉新'
 
 
-# In[46]:
 
 
 
@@ -5702,7 +5671,6 @@ class scale_weigh_tickets:
 # # ------------------------------------------------------------------
 
 
-# In[47]:
 
 
 # def find_W_quality(stime, etime, MachineCode):
@@ -6470,20 +6438,17 @@ class scale_weigh_tickets:
 #         df_result[k] = df_result[k].apply(lambda x: str(x) if pd.notnull(x) else None)
 
 
-# In[48]:
 
 
 # with pd.option_context('display.max_rows', 1000, 'display.max_columns', None):
 #     display(df_result)
 
 
-# In[ ]:
 
 
 
 
 
-# In[ ]:
 
 
 
