@@ -1345,7 +1345,6 @@ class ERP_SR_detail:
                 SELECT distinct runno FROM adwind
                 WHERE winno IN ({winno_in_clause})
                 AND mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
-                AND prod IN ('1','4')
             )
             """
             query = conn.execute(text(sql))
@@ -1373,7 +1372,7 @@ class ERP_SR_detail:
                 FROM (
                     SELECT *,
                     CASE
-                        WHEN prod IN ('1') THEN
+                        WHEN prod IN ('1','9') THEN
                             CASE
                                 WHEN LEFT(ptype, 1) = 'H' AND CAST(width AS FLOAT) >= 100
                                     THEN RIGHT('00' + CAST(CAST(width AS INT) AS VARCHAR), 4) + 'RL00'
@@ -1388,13 +1387,18 @@ class ERP_SR_detail:
                                         END
                                 ELSE RIGHT('00' + CAST(CAST(width AS INT) AS VARCHAR), 4) + 'RL00'
                             END
-                        WHEN prod IN ('4') THEN 'R'
+                        WHEN prod IN ('2','4','7','8') THEN 'R'
                         ELSE NULL
                     END AS prodn,
-                    CASE 
-                    WHEN prod = 1 THEN '成品'
-                    WHEN prod = 4 THEN '中倉' 
-                    END AS pstatus
+                    CASE WHEN prod = 1 THEN '成品'
+                         WHEN prod = 2 THEN '裁切'
+                         WHEN prod = 4 THEN '中倉'
+                         WHEN prod = 5 THEN '回爐'
+                         WHEN prod = 6 THEN '配幅回爐'
+                         WHEN prod = 7 THEN '分條'
+                         WHEN prod = 8 THEN '含浸'
+                         WHEN prod = 9 THEN '成品'
+                         ELSE NULL END AS pstatus
                     FROM (
                         SELECT
                             CASE
@@ -1411,7 +1415,6 @@ class ERP_SR_detail:
                         INNER JOIN ampaper b ON adwind.ptype = b.ptype
                         WHERE winno IN ({winno_in_clause})
                         AND mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
-                        AND prod IN ('1','4')
                     ) n
                 ) m
             ) t
