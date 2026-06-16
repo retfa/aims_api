@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
 
 
 from fastapi import APIRouter, Query, Depends
 from fastapi.responses import JSONResponse
 from services.mes_service import MESService
-from schemas.mes_schema import ScaleWeighPatchBody
+from schemas.mes_schema import ScaleWeighPatchBody, VehiclesPatchBody
 
 import logging
 
@@ -368,6 +367,15 @@ def get_vehicles_daily_schedule(
 )
 def POST_vehicles_daily_schedule():
     return JSONResponse(content={'success': False, 'message': 'Please use GET'})
+
+@router.patch("/Vehicles-daily-schedule/{id}", summary="更新行車表欄位")
+def patch_vehicles_daily_schedule(
+    id: int,
+    body: VehiclesPatchBody,
+    svc: MESService = Depends(get_service)
+):
+    return svc.patch_vehicles_daily_schedule(id, body.dict(exclude_none=True))
+
 
 @router.post("/Vehicles-daily-schedule-refresh")
 def refresh_schedule(

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
 
 
 import sys
@@ -310,7 +309,6 @@ if __name__ == "__main__":
     )
 
 
-# In[ ]:
 
 
 # Swagger UI
@@ -319,7 +317,6 @@ if __name__ == "__main__":
 # http://10.10.2.154:50000/docs
 
 
-# In[ ]:
 
 
 # Redis

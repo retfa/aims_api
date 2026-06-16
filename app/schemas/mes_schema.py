@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
 
 
 from pydantic import BaseModel, Field
@@ -38,6 +37,14 @@ class YieldDailyReportQuery(BaseModel):
 
 class RelnoProductionHistoryQuery(BaseModel):
     relno: Optional[str]        
+        
+class VehiclesPatchBody(BaseModel):
+    cp_wt:  Optional[float] = None
+    fac_wt: Optional[float] = None
+    pay_wt: Optional[float] = None
+    # 日後擴充加這裡
+    # note:     Optional[str] = None
+    # order_no: Optional[str] = None        
         
 class WeighTicketKey(BaseModel):
     station_name: str

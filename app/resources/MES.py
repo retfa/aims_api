@@ -4975,6 +4975,56 @@ class vehicles_daily_schedule:
             "message": "refresh done",
             "time": time.time() - startTime
         }
+    
+    def patch(self, id: int, body: dict):
+        startTime = time.time()
+
+        if not id:
+            return {'success': False, 'message': 'Missing id'}
+        if not body:
+            return {'success': False, 'message': 'Missing body'}
+
+        # ✅ 只允許這些欄位被更新（白名單，防止亂改其他欄位）
+        allowed_fields = {
+            'cp_wt':       'cp_wt',
+            'fac_wt':      'factory_wt',
+            'pay_wt':      'pay_wt',
+            # 日後擴充：前端 key -> DB 欄位名
+            # 'note':      'note',
+            # 'order_no':  'order_no',
+        }
+
+        # 只取白名單內有傳的欄位
+        updates = {
+            allowed_fields[k]: v
+            for k, v in body.items()
+            if k in allowed_fields
+        }
+
+        if not updates:
+            return {'success': False, 'message': 'No valid fields to update'}
+
+        # 動態組 SET 子句
+        set_clause = ', '.join([f'[{col}] = :{col}' for col in updates.keys()])
+        params = {**updates, 'id': id}
+
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
+        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
+            sql = text(f"""
+                UPDATE [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
+                SET {set_clause}
+                WHERE id = :id
+            """)
+            result = conn.execute(sql, params)
+
+        if result.rowcount == 0:
+            return {'success': False, 'message': f'id {id} not found'}
+
+        return {
+            'success': True,
+            'updated_fields': list(updates.keys()),
+            'time': round(time.time() - startTime, 4)
+        }
 
 
 

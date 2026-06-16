@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
 
 
 from resources.MES import (
@@ -110,6 +109,9 @@ class MESService:
     
     def refresh_vehicles_daily_schedule(self, stime, etime, mname):
         return self.vehicles_daily_schedule_fetcher.refresh(stime, etime, mname)
+    
+    def patch_vehicles_daily_schedule(self, id: int, body: dict):
+        return self.vehicles_daily_schedule_fetcher.patch(id, body)  
     
     def get_scale_weigh_tickets(self, stime, etime, mname):
         return self.scale_weigh_tickets_fetcher.fetch(stime, etime, mname)
