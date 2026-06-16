@@ -4823,7 +4823,7 @@ class Relno_production_history:
 
 class vehicles_daily_schedule:
     def __init__(self, servers):
-        self.servers = servers     
+        self.servers = servers
     
     def fetch(self, stime: str, etime: str, mname: str):  
         startTime = time.time()
