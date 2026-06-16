@@ -2033,6 +2033,9 @@ class ERP_SH_detail:
             df_result['TRANSACTION_DATE'], errors='coerce'
         ).dt.strftime('%Y-%m-%d').fillna('')
 
+        # re 改從 P250/P211 的 SECONDARY_TRANSACTION_QUANTITY 取得
+        df_result['re'] = pd.to_numeric(df_result['SECONDARY_TRANSACTION_QUANTITY'], errors='coerce').fillna(0)
+
         # BATCH_NO → LOT_NUMBER
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
             batch_list = ", ".join([f"'{item}'" for item in list(df_result['batch_no'].unique())])
