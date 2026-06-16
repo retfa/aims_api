@@ -1554,7 +1554,7 @@ class ERP_SR_detail:
                 }
 
         else:
-            df_result = df_adwind_merge.groupby(['prod', 'pstatus', 'runno', 'TRANSACTION_DATE_DATE', 'batch_no', 'ptype', 'pgramg', 'lenth', 'width', 'pclass',
+            df_result = df_adwind_merge.groupby(['prod', 'runno', 'TRANSACTION_DATE_DATE', 'batch_no', 'ptype', 'pgramg', 'lenth', 'width', 'pclass',
                                                  'store', 'core_tube_d', 'roll_type'], as_index=False)\
                 .agg(weigh_sum=('weigh', 'sum'), weigh_count=('weigh', 'count'))
 
@@ -1580,30 +1580,42 @@ class ERP_SR_detail:
 
                     for prod, df_prod in grouped_prod:
                         weigh_count_prod_subtotal = round(df_prod["weigh_count"].sum(), 2)
-                        weigh_sum_prod_subtotal = round(df_prod["weigh_sum"].sum(), 3)
-                        pstatus_label = df_prod["pstatus"].iloc[0]  
+                        weigh_sum_prod_subtotal = round(df_prod["weigh_sum"].sum(), 3)  
 
-                        items = [{
-                            "runno": row["runno"],  
-                            "batch_no": row["batch_no"],
-                            "ptype": row["ptype"],
-                            "pgramg": row["pgramg"],
-                            "lenth": row["lenth"],
-                            "width": row["width"],
-                            "pclass": row["pclass"],
-                            "store": row["store"],
-                            "weigh_count": str(row["weigh_count"]),
-                            "weigh_sum": str(row["weigh_sum"]),
-                            "roll_type": row["roll_type"],
-                            "core_tube_d": row["core_tube_d"]
-                        } for _, row in df_prod.iterrows()]
+                        runno_groups = []
+                        grouped_runno = df_prod.groupby('runno')
+
+                        for runno, df_runno in grouped_runno:
+                            weigh_count_runno_subtotal = round(df_runno["weigh_count"].sum(), 2)
+                            weigh_sum_runno_subtotal = round(df_runno["weigh_sum"].sum(), 3)
+
+                            items = [{
+                                "runno": row["runno"],  
+                                "batch_no": row["batch_no"],
+                                "ptype": row["ptype"],
+                                "pgramg": row["pgramg"],
+                                "lenth": row["lenth"],
+                                "width": row["width"],
+                                "pclass": row["pclass"],
+                                "store": row["store"],
+                                "weigh_count": str(row["weigh_count"]),
+                                "weigh_sum": str(row["weigh_sum"]),
+                                "roll_type": row["roll_type"],
+                                "core_tube_d": row["core_tube_d"]
+                            } for _, row in df_runno.iterrows()]
+
+                            runno_groups.append({
+                                "runno": runno,
+                                "weigh_count_runno_subtotal": weigh_count_runno_subtotal,
+                                "weigh_sum_runno_subtotal": weigh_sum_runno_subtotal,
+                                "items": items
+                            })
 
                         prod_groups.append({
                             "prod": prod,
-                            "pstatus": pstatus_label,
                             "weigh_count_prod_subtotal": weigh_count_prod_subtotal,
                             "weigh_sum_prod_subtotal": weigh_sum_prod_subtotal,
-                            "items": items
+                            "runno_groups": runno_groups
                         })
 
                     groups.append({
@@ -2017,6 +2029,9 @@ class ERP_SH_detail:
         df_result = df_result.merge(df_250, left_on='stkno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
         df_result = df_result.drop(columns=['LOT_NUMBER'], errors='ignore')
         df_result['TRANSACTION_DATE'] = df_result['TRANSACTION_DATE'].fillna('').astype(str)
+        df_result['TRANSACTION_DATE_DATE'] = pd.to_datetime(
+            df_result['TRANSACTION_DATE'], errors='coerce'
+        ).dt.strftime('%Y-%m-%d').fillna('')
 
         # BATCH_NO → LOT_NUMBER
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
@@ -2071,7 +2086,7 @@ class ERP_SH_detail:
                     df_result[k] = df_result[k].astype(str)
 
             groups = []
-            for group_date, df_tdate in df_result.groupby('TRANSACTION_DATE'):
+            for group_date, df_tdate in df_result.groupby('TRANSACTION_DATE_DATE'):
                 re_subtotal = round(df_tdate["re"].sum(), 2)
                 T_subtotal = round(df_tdate["T"].sum(), 3)
 
@@ -2083,6 +2098,7 @@ class ERP_SH_detail:
                     items = [{
                         "bhno": row["bhno"],
                         "stkno": row["stkno"],
+                        "bdate": row["bdate"],
                         "bdtm": row["bdtm"],
                         "batch_no": row["batch_no"],
                         "ptype": row["ptype"],
@@ -2109,7 +2125,7 @@ class ERP_SH_detail:
                     })
 
                 groups.append({
-                    "TRANSACTION_DATE": group_date,
+                    "TRANSACTION_DATE_DATE": group_date,
                     "re_subtotal": re_subtotal,
                     "T_subtotal": T_subtotal,
                     "runno_groups": runno_groups
@@ -2126,22 +2142,21 @@ class ERP_SH_detail:
         else:
             df_result = (
                 df_result.groupby([
-                    'runno', 'bdate', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2',
+                    'runno', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2',
                     'store', 'ExportSales', 'pclass', 'rewt', 'itemNo'
                 ], as_index=False)
                 .agg({
                     're': 'sum',
                     'T': 'sum',
-                    'mname': 'count',
                     'LOT_NUMBER': 'max',
-                    'TRANSACTION_DATE': 'max'
+                    'TRANSACTION_DATE': 'max',
+                    'TRANSACTION_DATE_DATE': 'max'
                 })
-                .rename(columns={'mname': 'amount'})
             )
 
             df_result = df_result[
-                ['runno', 'bdate', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2', 'store',
-                 'ExportSales', 'pclass', 'rewt', 'itemNo', 're', 'T', 'amount', 'LOT_NUMBER', 'TRANSACTION_DATE']
+                ['runno', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2', 'store',
+                 'ExportSales', 'pclass', 'rewt', 'itemNo', 're', 'T', 'LOT_NUMBER', 'TRANSACTION_DATE', 'TRANSACTION_DATE_DATE']
             ]
 
             df_result = df_result.merge(df_SOLD_TO_CUST_NAME, on='runno', how='left')
@@ -2156,12 +2171,6 @@ class ERP_SH_detail:
                 df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
 
             df_result = df_result.merge(df_CHPGTERPDBAAR01, left_on='itemNo', right_on='ITEM_NUMBER', how='left')
-
-            df_result['note'] = np.where(
-                df_result['CATALOG_ELEM_VAL_010'].notna(),
-                np.where(df_result['LOT_NUMBER'].ne(''), '', '資料未轉移至JT'),
-                '料號不存在，請檢查資料正確性'
-            )
 
             df_result['rewt'] = np.where(
                 df_result['CATALOG_ELEM_VAL_060'].notna(),
@@ -2184,34 +2193,44 @@ class ERP_SH_detail:
             T_total = round(df_result["T"].sum(), 3)
 
             groups = []
-            for tdate, group in df_result.groupby(['TRANSACTION_DATE']):
+            for tdate, group in df_result.groupby('TRANSACTION_DATE_DATE'):
                 re_subtotal = round(group["re"].sum(), 2)
                 T_subtotal = round(group["T"].sum(), 3)
 
-                items = [{
-                    "runno": row["runno"],
-                    "batch_no": row["batch_no"],
-                    "ptype": row["ptype"],
-                    "pgramg": row["pgramg"],
-                    "psize1": row["psize1"],
-                    "psize2": row["psize2"],
-                    "store": row["store"],
-                    "ExportSales": row["ExportSales"],
-                    "pclass": row["pclass"],
-                    "rewt": row["rewt"],
-                    "re": str(row["re"]),
-                    "T": str(row["T"]),
-                    "amount": row["amount"],
-                    "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
-                    "TRANSACTION_DATE": row["TRANSACTION_DATE"],
-                    "note": row["note"]
-                } for _, row in group.iterrows()]
+                runno_groups = []
+                for runno, df_runno in group.groupby('runno'):
+                    re_runno_subtotal = round(df_runno["re"].sum(), 2)
+                    T_runno_subtotal = round(df_runno["T"].sum(), 3)
+
+                    items = [{
+                        "runno": row["runno"],
+                        "batch_no": row["batch_no"],
+                        "ptype": row["ptype"],
+                        "pgramg": row["pgramg"],
+                        "psize1": row["psize1"],
+                        "psize2": row["psize2"],
+                        "store": row["store"],
+                        "ExportSales": row["ExportSales"],
+                        "pclass": row["pclass"],
+                        "rewt": row["rewt"],
+                        "re": str(row["re"]),
+                        "T": str(row["T"]),
+                        "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
+                        "TRANSACTION_DATE": row["TRANSACTION_DATE"],
+                    } for _, row in df_runno.iterrows()]
+
+                    runno_groups.append({
+                        "runno": runno,
+                        "re_runno_subtotal": re_runno_subtotal,
+                        "T_runno_subtotal": T_runno_subtotal,
+                        "items": items
+                    })
 
                 groups.append({
-                    "TRANSACTION_DATE": tdate,
+                    "TRANSACTION_DATE_DATE": tdate,
                     "re_subtotal": re_subtotal,
                     "T_subtotal": T_subtotal,
-                    "items": items
+                    "runno_groups": runno_groups
                 })
 
             result_json = {
