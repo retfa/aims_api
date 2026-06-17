@@ -1285,19 +1285,19 @@ class ERP_SR_detail:
             -- 步驟二：P250（2026-05-28 13:12:56 前資料）UNION ALL P211（之後資料），全歷史
             AllHistory AS (
                 SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
-                       [TRANSACTION_DATE], [TRANSACTION_QUANTITY]
+                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY]
                 FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
                 WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
                 UNION ALL
                 SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
-                       [TRANSACTION_DATE], [TRANSACTION_QUANTITY]
+                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY]
                 FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
                 WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
             ),
             -- 步驟三：對每個批號取最新一筆，帶回 TRANSACTION_QUANTITY，並計算歷史出現次數
             Ranked AS (
-                SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[TRANSACTION_QUANTITY],
-                       ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC) AS rn,
+                SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[TRANSACTION_QUANTITY],
+                       ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn,
                        -- 新增：計算該批號在歷史紀錄中出現的總筆數
                        COUNT(*) OVER (PARTITION BY H.[Actual_Lot_Number]) AS lot_count
                 FROM AllHistory H
@@ -1940,19 +1940,19 @@ class ERP_SH_detail:
             -- 步驟二：P250（2026-05-28 13:12:56 前資料）UNION ALL P211（之後資料），全歷史
             AllHistory AS (
                 SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
-                       [TRANSACTION_DATE], [SECONDARY_TRANSACTION_QUANTITY]
+                       [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY]
                 FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
                 WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
                 UNION ALL
                 SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
-                       [TRANSACTION_DATE], [SECONDARY_TRANSACTION_QUANTITY]
+                       [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY]
                 FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
                 WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
             ),
             -- 步驟三：對每個批號取最新一筆，帶回 SECONDARY_TRANSACTION_QUANTITY
             Ranked AS (
-                SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[SECONDARY_TRANSACTION_QUANTITY],
-                       ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC) AS rn
+                SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[SECONDARY_TRANSACTION_QUANTITY],
+                       ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn
                 FROM AllHistory H
                 INNER JOIN TargetLots T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
             )
