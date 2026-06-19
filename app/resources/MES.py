@@ -1316,7 +1316,7 @@ class ERP_SR_detail:
             query = conn.execute(text(sql))
             df_250 = pd.DataFrame([dict(i) for i in query])
 
-        if df_250.empty:
+        if df_250.empty or len(df_250) > 300:
             return {
                 "summary": {"weigh_count_total": 0, "weigh_sum_total": 0},
                 "groups": []
@@ -1771,7 +1771,7 @@ class ERP_SR_prod_groupby:
             query = conn.execute(text(sql))
             df_adwind = pd.DataFrame([dict(i) for i in query])
 
-            if df_adwind.empty:
+            if df_adwind.empty or len(df_adwind) > 300:
                 return {
                     "summary": {"weigh_count_total": 0, "weigh_sum_total": 0, "by_prod": []},
                     "detail": []
@@ -1962,7 +1962,7 @@ class ERP_SH_detail:
             query = conn.execute(text(sql))
             df_250 = pd.DataFrame([dict(i) for i in query])
 
-        if df_250.empty:
+        if df_250.empty or len(df_250) > 300:
             return {
                 "summary": {"re_total": 0, "T_total": 0},
                 "groups": []

@@ -111,7 +111,7 @@ import redis
 from starlette.middleware.base import BaseHTTPMiddleware
 
 def create_app() -> FastAPI:
-    servers = load_servers()   
+    servers = load_servers()
 
     # ✅ 建立 connection pool（不會真的連線）
     redis_pool = redis.ConnectionPool(
