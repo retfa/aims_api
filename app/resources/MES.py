@@ -736,23 +736,10 @@ class ERP_SR_summary:
 
         srv_SRVAD1 = self.servers['SRVAD1'] 
         with srv_SRVAD1['create_engine'][0].connect() as conn: 
-            sql =   """
-                SELECT mes_no, batch_no
-                FROM (
-                    SELECT 
-                        mes_no, 
-                        batch_no, 
-                        ROW_NUMBER() OVER (PARTITION BY mes_no ORDER BY batch_no) AS rn
-                    FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P208_IN_CRE_BATCH_ST]
-                    WHERE substring(batch_no, 10, 2) = 'SR' 
-                      AND status_code = 'S'
-                ) t
-                WHERE rn = 1 AND mes_no IN (
-                    select distinct runno from adwind 
-                    where mname in("""+ str(mname_t) +""") and substring(runno,1,1) = """+ str(sub_r) +"""
-                    and bdate between '"""+ str(stime) +"""' and '"""+ str(etime) +"""' 
-                    and prod not in('3','5','6','9') 
-                )          
+            sql = f"""
+                SELECT v.mes_no, v.batch_no
+                FROM vw_SOA_CHP_P208_IN_CRE_BATCH_OVER v
+                
             """       
             query = conn.execute(text(sql))
             df_batch_no = pd.DataFrame([dict(i) for i in query])
@@ -1264,86 +1251,77 @@ class ERP_SR_detail:
         else:
             pass
 
-        # Step 1: Query P250+P211 table by TRANSACTION_DATE，取最新一筆並帶回 TRANSACTION_QUANTITY
-        srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
-        with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-            sql = f"""
-            -- 步驟一：P250 + P211 找出日期範圍內的實際批號清單
-            WITH TargetLots AS (
-                SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number]
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-                WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
-                  AND [STATUS_CODE] = 'S'
-                  AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-                UNION
-                SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15])
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
-                WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
-                  AND [STATUS_CODE] = 'S'
-                  AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-            ),
-            -- 步驟二：P250（2026-05-28 13:12:56 前資料）UNION ALL P211（之後資料），全歷史
-            AllHistory AS (
-                SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
-                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY]
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-                WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-                UNION ALL
-                SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
-                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY]
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
-                WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-            ),
-            -- 步驟三：對每個批號取最新一筆，帶回 TRANSACTION_QUANTITY，並計算歷史出現次數
-            Ranked AS (
-                SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[TRANSACTION_QUANTITY],
-                       ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn,
-                       -- 新增：計算該批號在歷史紀錄中出現的總筆數
-                       COUNT(*) OVER (PARTITION BY H.[Actual_Lot_Number]) AS lot_count
-                FROM AllHistory H
-                INNER JOIN TargetLots T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
-            )
-            -- 步驟四：篩選最新一筆，並轉換重複代號
-            SELECT [Actual_Lot_Number] AS [LOT_NUMBER], 
-                   [TRANSACTION_DATE], 
-                   [TRANSACTION_QUANTITY],
-                   -- 新增：根據出現次數給予 0 或 1 的代號
+        target_lots_cte = f"""
+        WITH TargetLots_Range AS (
+            SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number]
+            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+            WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
+              AND [STATUS_CODE] = 'S'
+              AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+            UNION
+            SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15])
+            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
+            WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
+              AND [STATUS_CODE] = 'S'
+              AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+        ),
+        AllHistory AS (
+            SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
+                   [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY]
+            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+            WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+            UNION ALL
+            SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
+                   [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY]
+            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
+            WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+        ),
+        Ranked AS (
+            SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[TRANSACTION_QUANTITY],
+                   ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn,
+                   COUNT(*) OVER (PARTITION BY H.[Actual_Lot_Number]) AS lot_count
+            FROM AllHistory H
+            INNER JOIN TargetLots_Range T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
+        ),
+        TargetLots AS (
+            SELECT [Actual_Lot_Number], [TRANSACTION_DATE], [TRANSACTION_QUANTITY],
                    CASE WHEN lot_count > 1 THEN 1 ELSE 0 END AS [IS_DUPLICATE]
-            FROM Ranked 
+            FROM Ranked
             WHERE rn = 1
-              AND [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}';
-            """
-            query = conn.execute(text(sql))
-            df_250 = pd.DataFrame([dict(i) for i in query])
-
-        if df_250.empty or len(df_250) > 300:
-            return {
-                "summary": {"weigh_count_total": 0, "weigh_sum_total": 0},
-                "groups": []
-            }
-
-        winno_in_clause = ",".join(f"'{x}'" for x in df_250['LOT_NUMBER'].unique())
+              AND [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
+        )
+        """
 
         srv_SRVAD1 = self.servers['SRVAD1']
         with srv_SRVAD1['create_engine'][0].connect() as conn:
+            sql_250 = f"""
+            {target_lots_cte}
+            SELECT [Actual_Lot_Number] AS [LOT_NUMBER], 
+                   [TRANSACTION_DATE], 
+                   [TRANSACTION_QUANTITY],
+                   [IS_DUPLICATE]
+            FROM TargetLots
+            """
+            query = conn.execute(text(sql_250))
+            df_250 = pd.DataFrame([dict(i) for i in query])
+
+
             sql = f"""
-            SELECT mes_no, batch_no
-            FROM (
-                SELECT mes_no, batch_no,
-                    ROW_NUMBER() OVER (PARTITION BY mes_no ORDER BY batch_no) AS rn
-                FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P208_IN_CRE_BATCH_ST]
-                WHERE substring(batch_no, 10, 2) = 'SR' AND status_code = 'S'
-            ) t
-            WHERE rn = 1 AND mes_no IN (
-                SELECT distinct runno FROM adwind
-                WHERE winno IN ({winno_in_clause})
-                AND mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
-            )
+                {target_lots_cte}
+                SELECT mes_no, batch_no
+                FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_208_OVER_PARTITION] t 
+                INNER JOIN (
+                    SELECT distinct runno 
+                    FROM adwind 
+                    INNER JOIN TargetLots ON swinno = Actual_Lot_Number 
+                    WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}) m
+                ON t.mes_no = m.runno
             """
             query = conn.execute(text(sql))
             df_batch_no = pd.DataFrame([dict(i) for i in query])
 
             sql = f"""
+            {target_lots_cte}
             SELECT
                 *,
                 '4'+ptype+pclass+RIGHT('000' + CAST(CAST(CAST(pgramg AS FLOAT) * 10 AS INT) AS VARCHAR), 5)+prodn AS itemNo
@@ -1406,8 +1384,8 @@ class ERP_SR_detail:
                         adwind.*, b.chsnm
                         FROM adwind
                         INNER JOIN ampaper b ON adwind.ptype = b.ptype
-                        WHERE winno IN ({winno_in_clause})
-                        AND mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
+                        INNER JOIN TargetLots t ON adwind.swinno = t.Actual_Lot_Number
+                        WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
                     ) n
                 ) m
             ) t
@@ -1430,16 +1408,16 @@ class ERP_SR_detail:
             query = conn.execute(text(sql))
             df_roll_type_old = pd.DataFrame([dict(i) for i in query])
 
-            itemNos = df_adwind['winno'].unique().tolist()
-            in_clause = ",".join(f"'{x}'" for x in itemNos)
             sql = f"""
-            SELECT winno, diam AS core_tube_d, NULL AS SOLD_TO_CUST_NAME
-            FROM [SRVADA1].[ERP-A].[dbo].[AprirolltagT]
-            WHERE winno IN ({in_clause})
+            {target_lots_cte}
+            SELECT a.winno, a.diam AS core_tube_d, NULL AS SOLD_TO_CUST_NAME
+            FROM [SRVADA1].[ERP-A].[dbo].[AprirolltagT] a
+            INNER JOIN TargetLots t ON a.winno = t.Actual_Lot_Number
             """
             query = conn.execute(text(sql))
             df_roll_type = pd.DataFrame([dict(i) for i in query])
 
+        srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
             in_list = ", ".join([f"''{item}''" for item in list(df_adwind['itemNo'].unique())])
             sql = f"""
@@ -1472,7 +1450,7 @@ class ERP_SR_detail:
         else:
             df_adwind_merge['p9to1_usr'] = ''        
 
-        df_adwind_merge = df_adwind_merge.merge(df_250, left_on='winno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
+        df_adwind_merge = df_adwind_merge.merge(df_250, left_on='swinno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
         df_adwind_merge = df_adwind_merge.drop(columns=['LOT_NUMBER'], errors='ignore')
         df_adwind_merge['TRANSACTION_DATE'] = df_adwind_merge['TRANSACTION_DATE'].fillna('').astype(str)
         df_adwind_merge['TRANSACTION_DATE_DATE'] = pd.to_datetime(
@@ -1504,7 +1482,7 @@ class ERP_SR_detail:
                     for runno, df_runno in df_td.groupby('runno'):
                         items = [{
                             "relno": row["relno"],
-                            "winno": row["winno"],
+                            "winno": row["swinno"],
                             "bdate": row["bdate"],
                             "pdate": row["pdate"],
                             "batch_no": row["batch_no"],
@@ -1681,19 +1659,14 @@ class ERP_SR_prod_groupby:
         srv_SRVAD1 = self.servers['SRVAD1']
         with srv_SRVAD1['create_engine'][0].connect() as conn:
             sql = f"""
-            SELECT mes_no, batch_no
-            FROM (
-                SELECT mes_no, batch_no,
-                    ROW_NUMBER() OVER (PARTITION BY mes_no ORDER BY batch_no) AS rn
-                FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P208_IN_CRE_BATCH_ST]
-                WHERE substring(batch_no, 10, 2) = 'SR' AND status_code = 'S'
-            ) t
-            WHERE rn = 1 AND mes_no IN (
+            SELECT v.mes_no, v.batch_no
+            FROM vw_SOA_CHP_P208_IN_CRE_BATCH_OVER v
+            INNER JOIN (
                 SELECT DISTINCT runno FROM adwind
                 WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
                 AND bdate BETWEEN '{stime}' AND '{etime}'
                 AND prod IN ('2','5','6','7','8','9')
-            )
+            ) a ON v.mes_no = a.runno
             """
             query = conn.execute(text(sql))
             df_batch_no = pd.DataFrame([dict(i) for i in query])
@@ -1899,8 +1872,6 @@ class ERP_SH_detail:
         self.servers = servers
 
     def fetch(self, start_Time: str, end_Time: str, mname: str, detail: bool = True):
-        startTime = time.time()
-
         if not start_Time:
             return {'success': False, 'message': 'Missing start_Time parameter'}
         if not end_Time:
@@ -1917,87 +1888,75 @@ class ERP_SH_detail:
         elif mname == "21":
             sub_r = "'W'"
         else:
-            pass
-
-        # Step 1: Query P250+P211 table by TRANSACTION_DATE，取最新一筆並帶回 SECONDARY_TRANSACTION_QUANTITY
-        srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
-        with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-            sql = f"""
-            -- 步驟一：P250 + P211 找出日期範圍內的實際批號清單
-            WITH TargetLots AS (
-                SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number]
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-                WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] <= '{end_Time}'
-                  AND [STATUS_CODE] = 'S'
-                  AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-                UNION
-                SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15])
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
-                WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] <= '{end_Time}'
-                  AND [STATUS_CODE] = 'S'
-                  AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-            ),
-            -- 步驟二：P250（2026-05-28 13:12:56 前資料）UNION ALL P211（之後資料），全歷史
-            AllHistory AS (
-                SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
-                       [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY]
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-                WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-                UNION ALL
-                SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
-                       [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY]
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
-                WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-            ),
-            -- 步驟三：對每個批號取最新一筆，帶回 SECONDARY_TRANSACTION_QUANTITY
-            Ranked AS (
-                SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[SECONDARY_TRANSACTION_QUANTITY],
-                       ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn
-                FROM AllHistory H
-                INNER JOIN TargetLots T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
-            )
-            SELECT [Actual_Lot_Number] AS [LOT_NUMBER], [TRANSACTION_DATE], [SECONDARY_TRANSACTION_QUANTITY]
-            FROM Ranked WHERE rn = 1;
-            """
-            query = conn.execute(text(sql))
-            df_250 = pd.DataFrame([dict(i) for i in query])
-
-        if df_250.empty or len(df_250) > 300:
-            return {
-                "summary": {"re_total": 0, "T_total": 0},
-                "groups": []
-            }
-
-        stkno_in_clause = ",".join(f"'{x}'" for x in df_250['LOT_NUMBER'].unique())
+            sub_r = "''"
 
         srv_SRVAD1 = self.servers['SRVAD1']
         with srv_SRVAD1['create_engine'][0].connect() as conn:
             sql = f"""
-            ;with raw_data as
+            WITH TargetLots AS (
+                SELECT * FROM OPENQUERY([10.10.1.27], '
+                    WITH TargetLots_Range AS (
+                        SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number]
+                        FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                        WHERE [TRANSACTION_DATE] >= ''{start_Time}'' AND [TRANSACTION_DATE] <= ''{end_Time}''
+                          AND [STATUS_CODE] = ''S''
+                          AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+                        UNION
+                        SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15])
+                        FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
+                        WHERE [TRANSACTION_DATE] >= ''{start_Time}'' AND [TRANSACTION_DATE] <= ''{end_Time}''
+                          AND [STATUS_CODE] = ''S''
+                          AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+                    ),
+                    AllHistory AS (
+                        SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
+                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO]
+                        FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                        WHERE [STATUS_CODE] = ''S'' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+                        UNION ALL
+                        SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
+                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO]
+                        FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
+                        WHERE [STATUS_CODE] = ''S'' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+                    ),
+                    Ranked AS (
+                        SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[SECONDARY_TRANSACTION_QUANTITY], H.[BATCH_NO],
+                               ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn
+                        FROM AllHistory H
+                        INNER JOIN TargetLots_Range T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
+                    )
+                    SELECT [Actual_Lot_Number] AS [LOT_NUMBER], [TRANSACTION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO]
+                    FROM Ranked WHERE rn = 1
+                ')
+            ),
+            p208_data AS (
+                SELECT * FROM OPENQUERY([10.10.1.27], '
+                    SELECT batch_no, mes_no, item_no, Creation_date, status_code
+                    FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P208_IN_CRE_BATCH_ST]
+                    WHERE Creation_date >= DATEADD(m,-6,getdate()) 
+                      AND substring(batch_no,10,2) = ''SH'' 
+                      AND status_code = ''S''
+                ')
+            ),
+            raw_data as
             (
-                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
-                from openquery([10.10.1.27],
-                '
-                SELECT *
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P208_IN_CRE_BATCH_ST]
-                WHERE Creation_date >= DATEADD(m,-6,getdate()) AND substring(batch_no,10,2) = ''SH'' AND status_code = ''S''
-                ') a
+                select a.batch_no, b.stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, b.re as orig_re, t.SECONDARY_TRANSACTION_QUANTITY, t.TRANSACTION_DATE, grain, pclass, x_yn, bdtm,
+                       CASE WHEN t.BATCH_NO = a.batch_no THEN t.LOT_NUMBER ELSE '' END AS LOT_NUMBER
+                from p208_data a
                 inner join adpack b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass <> 'A')
-                where substring(runno,1,1) = {sub_r} and stkno IN ({stkno_in_clause}) and b.re <> 0
+                inner join TargetLots t on b.stkno = t.LOT_NUMBER
+                where substring(runno,1,1) = {sub_r} and b.re <> 0
 
                 union
 
-                select a.batch_no, stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, re, grain, pclass, x_yn, bdtm
-                from openquery([10.10.1.27],
-                '
-                SELECT *
-                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P208_IN_CRE_BATCH_ST]
-                WHERE Creation_date >= dateadd(m,-6,getdate()) AND substring(batch_no,10,2) = ''SH'' AND status_code = ''S''
-                ') a
+                select a.batch_no, b.stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, b.re as orig_re, t.SECONDARY_TRANSACTION_QUANTITY, t.TRANSACTION_DATE, grain, pclass, x_yn, bdtm,
+                       CASE WHEN t.BATCH_NO = a.batch_no THEN t.LOT_NUMBER ELSE '' END AS LOT_NUMBER
+                from p208_data a
                 inner join adsel b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass in ('A','P') or b.pclass is null)
-                where substring(runno,1,1) = {sub_r} and stkno IN ({stkno_in_clause}) and b.nstation not in('SP','WP','WH','SH') and b.re <> 0
+                inner join TargetLots t on b.stkno = t.LOT_NUMBER
+                where substring(runno,1,1) = {sub_r} and b.nstation not in('SP','WP','WH','SH') and b.re <> 0
             )
-            SELECT *,rewt*re*0.0004535924 AS T,
+            SELECT *, rewt*orig_re*0.0004535924 AS T,
             CASE WHEN x_yn = 'Y' THEN '外銷' ELSE '內銷' END AS ExportSales,
             CASE WHEN x_yn = 'Y' THEN 'A4FG'
             WHEN x_yn = 'N' AND substring(runno,1,1) = 'R' THEN 'A3FG'
@@ -2008,7 +1967,7 @@ class ERP_SH_detail:
             FROM raw_data
             """
             query = conn.execute(text(sql))
-            df_result = pd.DataFrame([dict(i) for i in query])
+            df_result = pd.DataFrame([dict(r._mapping) for r in query])
 
             sql_sold = f"""
             SELECT runno, NULL AS SOLD_TO_CUST_NAME
@@ -2017,7 +1976,7 @@ class ERP_SH_detail:
             GROUP BY runno
             """
             query = conn.execute(text(sql_sold))
-            df_SOLD_TO_CUST_NAME = pd.DataFrame([dict(i) for i in query])
+            df_SOLD_TO_CUST_NAME = pd.DataFrame([dict(r._mapping) for r in query])
 
         if df_result.empty:
             return {
@@ -2025,79 +1984,77 @@ class ERP_SH_detail:
                 "groups": []
             }
 
-        # Merge TRANSACTION_DATE from df_250
-        df_result = df_result.merge(df_250, left_on='stkno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
-        df_result = df_result.drop(columns=['LOT_NUMBER'], errors='ignore')
         df_result['TRANSACTION_DATE'] = df_result['TRANSACTION_DATE'].fillna('').astype(str)
         df_result['TRANSACTION_DATE_DATE'] = pd.to_datetime(
             df_result['TRANSACTION_DATE'], errors='coerce'
         ).dt.strftime('%Y-%m-%d').fillna('')
 
-        # re 改從 P250/P211 的 SECONDARY_TRANSACTION_QUANTITY 取得
         df_result['re'] = pd.to_numeric(df_result['SECONDARY_TRANSACTION_QUANTITY'], errors='coerce').fillna(0)
+        df_result['LOT_NUMBER'] = df_result['LOT_NUMBER'].fillna('').astype(str)
 
-        # BATCH_NO → LOT_NUMBER
+        df_result = df_result.merge(df_SOLD_TO_CUST_NAME, on='runno', how='left')
+        df_result['SOLD_TO_CUST_NAME'] = df_result['SOLD_TO_CUST_NAME'].fillna('')
+
+        srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-            batch_list = ", ".join([f"'{item}'" for item in list(df_result['batch_no'].unique())])
+            in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])
             sql = f"""
-            SELECT distinct [BATCH_NO],[LOT_NUMBER]
-            FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST] WHERE [BATCH_NO] IN ({batch_list})
+            SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
             """
             query = conn.execute(text(sql))
-            df_CHPGTERPDBAAR01_BATCH_NO = pd.DataFrame([dict(i) for i in query])
+            df_CHPGTERPDBAAR01 = pd.DataFrame([dict(r._mapping) for r in query])
 
-        if not df_CHPGTERPDBAAR01_BATCH_NO.empty:
-            df_result = df_result.merge(df_CHPGTERPDBAAR01_BATCH_NO, left_on=['batch_no', 'stkno'],
-                                        right_on=['BATCH_NO', 'LOT_NUMBER'], how='left')
-            df_result['LOT_NUMBER'] = df_result['LOT_NUMBER'].fillna('').astype(str)
-        else:
-            df_result['LOT_NUMBER'] = ''
+        df_result = df_result.merge(df_CHPGTERPDBAAR01, left_on='itemNo', right_on='ITEM_NUMBER', how='left')
+
+        df_result['rewt'] = np.where(
+            df_result['CATALOG_ELEM_VAL_060'].notna(),
+            df_result['CATALOG_ELEM_VAL_060'],
+            df_result['rewt']
+        )
+        df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
 
         if detail:
-            df_result = df_result.merge(df_SOLD_TO_CUST_NAME, on='runno', how='left')
-            df_result['SOLD_TO_CUST_NAME'] = df_result['SOLD_TO_CUST_NAME'].fillna('')
-
-            with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-                in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])
-                sql = f"""
-                SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
-                """
-                query = conn.execute(text(sql))
-                df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
-
-            df_result = df_result.merge(df_CHPGTERPDBAAR01, left_on='itemNo', right_on='ITEM_NUMBER', how='left')
-
             df_result['note'] = np.where(
                 df_result['CATALOG_ELEM_VAL_010'].notna(),
                 np.where(df_result['LOT_NUMBER'].ne(''), '', '資料未轉移至JT'),
                 '料號不存在，請檢查資料正確性'
             )
 
-            df_result['rewt'] = np.where(
-                df_result['CATALOG_ELEM_VAL_060'].notna(),
-                df_result['CATALOG_ELEM_VAL_060'],
-                df_result['rewt']
+        # Convert types
+        for k in list(df_result.columns):
+            if k not in ['re', 'T']:
+                df_result[k] = df_result[k].fillna('').astype(str)
+            else:
+                df_result[k] = df_result[k].astype(float)
+
+        if not detail:
+            df_result = (
+                df_result.groupby([
+                    'runno', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2',
+                    'store', 'ExportSales', 'pclass', 'rewt', 'SOLD_TO_CUST_NAME'
+                ], as_index=False)
+                .agg({
+                    're': 'sum',
+                    'T': 'sum',
+                    'TRANSACTION_DATE': 'max',
+                    'TRANSACTION_DATE_DATE': 'max'
+                })
             )
 
-            df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
+        re_total = round(df_result["re"].sum(), 2)
+        T_total = round(df_result["T"].sum(), 3)
 
-            df_result['TRANSACTION_DATE'] = df_result['TRANSACTION_DATE'].astype(str)
-            df_result['re'] = df_result['re'].astype(float)
-            df_result['T'] = df_result['T'].astype(float)
-            for k in list(df_result.columns):
-                if k not in ['re', 'T']:
-                    df_result[k] = df_result[k].astype(str)
+        groups = []
+        for group_date, df_tdate in df_result.groupby('TRANSACTION_DATE_DATE'):
+            re_subtotal = round(df_tdate["re"].sum(), 2)
+            T_subtotal = round(df_tdate["T"].sum(), 3)
 
-            groups = []
-            for group_date, df_tdate in df_result.groupby('TRANSACTION_DATE_DATE'):
-                re_subtotal = round(df_tdate["re"].sum(), 2)
-                T_subtotal = round(df_tdate["T"].sum(), 3)
+            runno_groups = []
+            for runno, df_runno in df_tdate.groupby('runno'):
+                re_runno_subtotal = round(df_runno["re"].sum(), 2)
+                T_runno_subtotal = round(df_runno["T"].sum(), 3)
 
-                runno_groups = []
-                for runno, df_runno in df_tdate.groupby('runno'):
-                    re_runno_subtotal = round(df_runno["re"].sum(), 2)
-                    T_runno_subtotal = round(df_runno["T"].sum(), 3)
-
+                if detail:
                     items = [{
                         "bhno": row["bhno"],
                         "stkno": row["stkno"],
@@ -2119,92 +2076,7 @@ class ERP_SH_detail:
                         "SOLD_TO_CUST_NAME": row["SOLD_TO_CUST_NAME"],
                         "note": row["note"]
                     } for _, row in df_runno.iterrows()]
-
-                    runno_groups.append({
-                        "runno": runno,
-                        "re_runno_subtotal": re_runno_subtotal,
-                        "T_runno_subtotal": T_runno_subtotal,
-                        "items": items
-                    })
-
-                groups.append({
-                    "TRANSACTION_DATE_DATE": group_date,
-                    "re_subtotal": re_subtotal,
-                    "T_subtotal": T_subtotal,
-                    "runno_groups": runno_groups
-                })
-
-            result_json = {
-                "summary": {
-                    "re_total": round(df_result["re"].sum(), 2),
-                    "T_total": round(df_result["T"].sum(), 3)
-                },
-                "groups": groups
-            }
-
-        else:
-            df_result = (
-                df_result.groupby([
-                    'runno', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2',
-                    'store', 'ExportSales', 'pclass', 'rewt', 'itemNo'
-                ], as_index=False)
-                .agg({
-                    're': 'sum',
-                    'T': 'sum',
-                    'LOT_NUMBER': 'max',
-                    'TRANSACTION_DATE': 'max',
-                    'TRANSACTION_DATE_DATE': 'max'
-                })
-            )
-
-            df_result = df_result[
-                ['runno', 'batch_no', 'ptype', 'pgramg', 'psize1', 'psize2', 'store',
-                 'ExportSales', 'pclass', 'rewt', 'itemNo', 're', 'T', 'LOT_NUMBER', 'TRANSACTION_DATE', 'TRANSACTION_DATE_DATE']
-            ]
-
-            df_result = df_result.merge(df_SOLD_TO_CUST_NAME, on='runno', how='left')
-            df_result['SOLD_TO_CUST_NAME'] = df_result['SOLD_TO_CUST_NAME'].fillna('')
-
-            with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-                in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])
-                sql = f"""
-                SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
-                """
-                query = conn.execute(text(sql))
-                df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
-
-            df_result = df_result.merge(df_CHPGTERPDBAAR01, left_on='itemNo', right_on='ITEM_NUMBER', how='left')
-
-            df_result['rewt'] = np.where(
-                df_result['CATALOG_ELEM_VAL_060'].notna(),
-                df_result['CATALOG_ELEM_VAL_060'],
-                df_result['rewt']
-            )
-
-            df_result['T'] = df_result['re'].astype(float) * df_result['rewt'].astype(float) * 0.0004535924
-
-            for k in list(df_result.columns):
-                if k not in ['re', 'T']:
-                    df_result[k] = df_result[k].astype(str)
                 else:
-                    df_result[k] = df_result[k].astype(float)
-
-            df_result["re"] = df_result["re"].astype(float)
-            df_result["T"] = df_result["T"].astype(float)
-
-            re_total = round(df_result["re"].sum(), 2)
-            T_total = round(df_result["T"].sum(), 3)
-
-            groups = []
-            for tdate, group in df_result.groupby('TRANSACTION_DATE_DATE'):
-                re_subtotal = round(group["re"].sum(), 2)
-                T_subtotal = round(group["T"].sum(), 3)
-
-                runno_groups = []
-                for runno, df_runno in group.groupby('runno'):
-                    re_runno_subtotal = round(df_runno["re"].sum(), 2)
-                    T_runno_subtotal = round(df_runno["T"].sum(), 3)
-
                     items = [{
                         "runno": row["runno"],
                         "batch_no": row["batch_no"],
@@ -2222,29 +2094,28 @@ class ERP_SH_detail:
                         "TRANSACTION_DATE": row["TRANSACTION_DATE"],
                     } for _, row in df_runno.iterrows()]
 
-                    runno_groups.append({
-                        "runno": runno,
-                        "re_runno_subtotal": re_runno_subtotal,
-                        "T_runno_subtotal": T_runno_subtotal,
-                        "items": items
-                    })
-
-                groups.append({
-                    "TRANSACTION_DATE_DATE": tdate,
-                    "re_subtotal": re_subtotal,
-                    "T_subtotal": T_subtotal,
-                    "runno_groups": runno_groups
+                runno_groups.append({
+                    "runno": runno,
+                    "re_runno_subtotal": re_runno_subtotal,
+                    "T_runno_subtotal": T_runno_subtotal,
+                    "items": items
                 })
 
-            result_json = {
-                "summary": {
-                    "re_total": re_total,
-                    "T_total": T_total
-                },
-                "groups": groups
-            }
+            groups.append({
+                "TRANSACTION_DATE_DATE": group_date,
+                "re_subtotal": re_subtotal,
+                "T_subtotal": T_subtotal,
+                "runno_groups": runno_groups
+            })
 
-        ExecutionTime = time.time() - startTime
+        result_json = {
+            "summary": {
+                "re_total": re_total,
+                "T_total": T_total
+            },
+            "groups": groups
+        }
+
         return result_json
 
 
