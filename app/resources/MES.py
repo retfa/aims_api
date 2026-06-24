@@ -737,9 +737,14 @@ class ERP_SR_summary:
         srv_SRVAD1 = self.servers['SRVAD1'] 
         with srv_SRVAD1['create_engine'][0].connect() as conn: 
             sql = f"""
-                SELECT v.mes_no, v.batch_no
-                FROM vw_SOA_CHP_P208_IN_CRE_BATCH_OVER v
-                
+            SELECT v.mes_no, v.batch_no
+            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_208_OVER_PARTITION] v
+            INNER JOIN (
+                SELECT DISTINCT runno FROM adwind
+                WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
+                AND bdate BETWEEN '{stime}' AND '{etime}'
+                AND prod IN ('1','2','4','7','8')
+            ) a ON v.mes_no = a.runno 
             """       
             query = conn.execute(text(sql))
             df_batch_no = pd.DataFrame([dict(i) for i in query])
@@ -1251,206 +1256,120 @@ class ERP_SR_detail:
         else:
             pass
 
-        target_lots_cte = f"""
-        WITH TargetLots_Range AS (
-            SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number]
-            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-            WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
-              AND [STATUS_CODE] = 'S'
-              AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-            UNION
-            SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15])
-            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
-            WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
-              AND [STATUS_CODE] = 'S'
-              AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-        ),
-        AllHistory AS (
-            SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
-                   [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY]
-            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
-            WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-            UNION ALL
-            SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
-                   [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY]
-            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
-            WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
-        ),
-        Ranked AS (
-            SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[TRANSACTION_QUANTITY],
-                   ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn,
-                   COUNT(*) OVER (PARTITION BY H.[Actual_Lot_Number]) AS lot_count
-            FROM AllHistory H
-            INNER JOIN TargetLots_Range T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
-        ),
-        TargetLots AS (
-            SELECT [Actual_Lot_Number], [TRANSACTION_DATE], [TRANSACTION_QUANTITY],
-                   CASE WHEN lot_count > 1 THEN 1 ELSE 0 END AS [IS_DUPLICATE]
-            FROM Ranked
-            WHERE rn = 1
-              AND [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
-        )
-        """
-
-        srv_SRVAD1 = self.servers['SRVAD1']
-        with srv_SRVAD1['create_engine'][0].connect() as conn:
+        # 1. 直接用 CHPGTERPDBAAR01 查詢 df_250，並在 CTE 中一併取得 batch_no、store 及 itemNo
+        srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
+        with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
             sql_250 = f"""
-            {target_lots_cte}
+            WITH TargetLots_Range AS (
+                SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number]
+                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
+                  AND [STATUS_CODE] = 'S'
+                  AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+                UNION
+                SELECT DISTINCT ISNULL([LOT_NUMBER], [ATTRIBUTE15])
+                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
+                WHERE [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
+                  AND [STATUS_CODE] = 'S'
+                  AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+            ),
+            AllHistory AS (
+                SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
+                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
+                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+                UNION ALL
+                SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
+                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
+                FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
+                WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
+            ),
+            Ranked AS (
+                SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[TRANSACTION_QUANTITY], H.[BATCH_NO], H.[SUBINVENTORY_CODE], H.[ITEM_NO],
+                       ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn,
+                       COUNT(*) OVER (PARTITION BY H.[Actual_Lot_Number]) AS lot_count
+                FROM AllHistory H
+                INNER JOIN TargetLots_Range T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
+            ),
+            TargetLots AS (
+                SELECT [Actual_Lot_Number], [TRANSACTION_DATE], [TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO],
+                       CASE WHEN lot_count > 1 THEN 1 ELSE 0 END AS [IS_DUPLICATE]
+                FROM Ranked
+                WHERE rn = 1
+                  AND [TRANSACTION_DATE] >= '{start_Time}' AND [TRANSACTION_DATE] < '{end_Time}'
+            )
             SELECT [Actual_Lot_Number] AS [LOT_NUMBER], 
                    [TRANSACTION_DATE], 
                    [TRANSACTION_QUANTITY],
+                   [BATCH_NO] AS batch_no,
+                   [SUBINVENTORY_CODE] AS store,
+                   [ITEM_NO] AS itemNo,
                    [IS_DUPLICATE]
             FROM TargetLots
             """
             query = conn.execute(text(sql_250))
             df_250 = pd.DataFrame([dict(i) for i in query])
 
+        lots = [x for x in df_250['LOT_NUMBER'].tolist() if x]
+        if not lots:
+            return {
+                "summary": {"weigh_count_total": 0, "weigh_sum_total": 0},
+                "groups": []
+            }
+        in_list_lots = ", ".join([f"'{x}'" for x in lots])
 
-            sql = f"""
-                {target_lots_cte}
-                SELECT mes_no, batch_no
-                FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_208_OVER_PARTITION] t 
-                INNER JOIN (
-                    SELECT distinct runno 
-                    FROM adwind 
-                    INNER JOIN TargetLots ON swinno = Actual_Lot_Number 
-                    WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}) m
-                ON t.mes_no = m.runno
+        # 2. 用 SRVAD1 查詢本地 tables，使用 WHERE IN 進行 Lots 過濾以提升效能
+        srv_SRVAD1 = self.servers['SRVAD1']
+        with srv_SRVAD1['create_engine'][0].connect() as conn:
+            sql_adwind = f"""
+            SELECT adwind.*, b.chsnm, r.roll_type, tag.diam AS core_tube_d
+            FROM adwind
+            INNER JOIN ampaper b ON adwind.ptype = b.ptype
+            LEFT JOIN (
+                SELECT runno, MAX(roll_type) AS roll_type
+                FROM adrunt_edit_temp
+                WHERE y_mk >= YEAR('{start_Time}') AND len(roll_type) > 0
+                GROUP BY runno
+            ) r ON adwind.runno = r.runno
+            LEFT JOIN [SRVADA1].[ERP-A].[dbo].[AprirolltagT] tag ON adwind.swinno = tag.winno
+            WHERE adwind.mname IN ({mname_t}) AND substring(adwind.runno,1,1) = {sub_r}
+              AND adwind.swinno IN ({in_list_lots})
             """
-            query = conn.execute(text(sql))
-            df_batch_no = pd.DataFrame([dict(i) for i in query])
-
-            sql = f"""
-            {target_lots_cte}
-            SELECT
-                *,
-                '4'+ptype+pclass+RIGHT('000' + CAST(CAST(CAST(pgramg AS FLOAT) * 10 AS INT) AS VARCHAR), 5)+prodn AS itemNo
-            FROM (
-                SELECT *, CASE
-                    WHEN x_yn = 'Y' AND pstatus = '成品' THEN 'A4FG'
-                    WHEN pstatus = '成品' THEN
-                        CASE
-                            WHEN '{mname}' = '18' AND prodn <> 'R' THEN 'A3FG'
-                            WHEN '{mname}' = '19' AND prodn <> 'R' THEN 'A2FG'
-                            WHEN ('{mname}' = '20' AND prodn <> 'R')
-                                 OR ('{mname}' = '18' AND prodn <> 'R')
-                                 OR ('{mname}' = '19' AND prodn <> 'R') THEN 'A6FG'
-                            WHEN '{mname}' = '21' AND prodn <> 'R' THEN 'A7FG'
-                            ELSE NULL
-                        END
-                    ELSE 'FTA.SFG.SR.PM' + CAST('{mname}' AS VARCHAR)
-                END AS store
-                FROM (
-                    SELECT *,
-                    CASE
-                        WHEN prod IN ('1','9') THEN
-                            CASE
-                                WHEN LEFT(ptype, 1) = 'H' AND CAST(width AS FLOAT) >= 100
-                                    THEN RIGHT('00' + CAST(CAST(width AS INT) AS VARCHAR), 4) + 'RL00'
-                                WHEN LEFT(ptype, 1) = 'H' OR CAST(width AS FLOAT) < 100
-                                    THEN
-                                        CASE
-                                            WHEN RIGHT(CAST(CAST(width10 AS INT) AS VARCHAR), 1) = '5'
-                                                THEN RIGHT('00' + CAST(CAST(width10 AS INT) - 1 AS VARCHAR), 3) + 'KRL00'
-                                            WHEN RIGHT(CAST(CAST(width10 AS INT) AS VARCHAR), 1) = '8'
-                                                THEN RIGHT('00' + CAST(CAST(width10 AS INT) - 2 AS VARCHAR), 3) + 'KRL00'
-                                            ELSE RIGHT('00' + CAST(CAST(width10 AS INT) AS VARCHAR), 3) + 'KRL00'
-                                        END
-                                ELSE RIGHT('00' + CAST(CAST(width AS INT) AS VARCHAR), 4) + 'RL00'
-                            END
-                        WHEN prod IN ('2','4','7','8') THEN 'R'
-                        ELSE NULL
-                    END AS prodn,
-                    CASE WHEN prod = 1 THEN '成品'
-                         WHEN prod = 2 THEN '裁切'
-                         WHEN prod = 4 THEN '中倉'
-                         WHEN prod = 5 THEN '回爐'
-                         WHEN prod = 6 THEN '配幅回爐'
-                         WHEN prod = 7 THEN '分條'
-                         WHEN prod = 8 THEN '含浸'
-                         WHEN prod = 9 THEN '成品'
-                         ELSE NULL END AS pstatus
-                    FROM (
-                        SELECT
-                            CASE
-                                WHEN ABS(width * 10) - FLOOR(ABS(width * 10)) = 0.5
-                                    THEN
-                                        CASE
-                                            WHEN FLOOR(ABS(width * 10)) % 2 = 0 THEN FLOOR(width * 10)
-                                            ELSE CEILING(width * 10)
-                                        END
-                                ELSE ROUND(width * 10, 0)
-                            END AS width10,
-                        adwind.*, b.chsnm
-                        FROM adwind
-                        INNER JOIN ampaper b ON adwind.ptype = b.ptype
-                        INNER JOIN TargetLots t ON adwind.swinno = t.Actual_Lot_Number
-                        WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
-                    ) n
-                ) m
-            ) t
-            """
-            query = conn.execute(text(sql))
+            query = conn.execute(text(sql_adwind))
             df_adwind = pd.DataFrame([dict(i) for i in query])
 
-            if df_adwind.empty:
-                return {
-                    "summary": {"weigh_count_total": 0, "weigh_sum_total": 0},
-                    "groups": []
-                }
-
-            sql = f"""
-            SELECT runno, MAX(roll_type) AS roll_type
-            FROM adrunt_edit_temp
-            WHERE y_mk >= YEAR('{start_Time}') AND len(roll_type) > 0
-            GROUP BY runno
-            """
-            query = conn.execute(text(sql))
-            df_roll_type_old = pd.DataFrame([dict(i) for i in query])
-
-            sql = f"""
-            {target_lots_cte}
-            SELECT a.winno, a.diam AS core_tube_d, NULL AS SOLD_TO_CUST_NAME
-            FROM [SRVADA1].[ERP-A].[dbo].[AprirolltagT] a
-            INNER JOIN TargetLots t ON a.winno = t.Actual_Lot_Number
-            """
-            query = conn.execute(text(sql))
-            df_roll_type = pd.DataFrame([dict(i) for i in query])
-
-        srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
-        with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-            in_list = ", ".join([f"''{item}''" for item in list(df_adwind['itemNo'].unique())])
-            sql = f"""
-            SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
-            """
-            query = conn.execute(text(sql))
-            df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
-
-        df_adwind = df_adwind.merge(df_CHPGTERPDBAAR01, left_on='itemNo', right_on='ITEM_NUMBER', how='left')
-        df_adwind['store'] = np.where(df_adwind['CATALOG_ELEM_VAL_010'] == 'NCR', 'A6FG', df_adwind['store'])
-        df_adwind['note'] = np.where(df_adwind['CATALOG_ELEM_VAL_010'].notna(), '', '料號不存在，請檢查資料正確性')
+        if df_adwind.empty:
+            return {
+                "summary": {"weigh_count_total": 0, "weigh_sum_total": 0},
+                "groups": []
+            }
 
         df_adwind['runno'] = df_adwind['runno'].str.upper()
-        df_batch_no['mes_no'] = df_batch_no['mes_no'].str.upper()
-
-        df_adwind_merge = df_adwind.merge(df_batch_no, left_on='runno', right_on='mes_no', how='left')
-        df_adwind_merge = df_adwind_merge.merge(df_roll_type_old, on='runno', how='left')
-
-        if df_roll_type.empty:
-            df_adwind_merge['core_tube_d'] = ''
-            df_adwind_merge['SOLD_TO_CUST_NAME'] = ''
-        else:
-            df_adwind_merge = df_adwind_merge.merge(df_roll_type, on='winno', how='left')
+        df_adwind_merge = df_adwind
 
         df_adwind_merge['roll_type'] = df_adwind_merge['roll_type'].fillna('')
         df_adwind_merge['core_tube_d'] = df_adwind_merge['core_tube_d'].fillna('')
-        df_adwind_merge['SOLD_TO_CUST_NAME'] = df_adwind_merge['SOLD_TO_CUST_NAME'].fillna('')
+        df_adwind_merge['SOLD_TO_CUST_NAME'] = ''
         if 'p9to1_usr' in df_adwind_merge.columns:
             df_adwind_merge['p9to1_usr'] = df_adwind_merge['p9to1_usr'].fillna('')
         else:
             df_adwind_merge['p9to1_usr'] = ''        
 
         df_adwind_merge = df_adwind_merge.merge(df_250, left_on='swinno', right_on='LOT_NUMBER', how='left', suffixes=('', '_250'))
+
+        srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
+        with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
+            in_list = ", ".join([f"''{item}''" for item in list(df_adwind_merge['itemNo'].unique()) if item])
+            sql = f"""
+            SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
+            """
+            query = conn.execute(text(sql))
+            df_CHPGTERPDBAAR01 = pd.DataFrame([dict(i) for i in query])
+
+        df_adwind_merge = df_adwind_merge.merge(df_CHPGTERPDBAAR01, left_on='itemNo', right_on='ITEM_NUMBER', how='left')
+        df_adwind_merge['store'] = df_adwind_merge['store'].fillna('')
+        df_adwind_merge['store'] = np.where(df_adwind_merge['CATALOG_ELEM_VAL_010'] == 'NCR', 'A6FG', df_adwind_merge['store'])
+        df_adwind_merge['note'] = np.where(df_adwind_merge['CATALOG_ELEM_VAL_010'].notna(), '', '料號不存在，請檢查資料正確性')
         df_adwind_merge = df_adwind_merge.drop(columns=['LOT_NUMBER'], errors='ignore')
         df_adwind_merge['TRANSACTION_DATE'] = df_adwind_merge['TRANSACTION_DATE'].fillna('').astype(str)
         df_adwind_merge['TRANSACTION_DATE_DATE'] = pd.to_datetime(
@@ -1660,7 +1579,7 @@ class ERP_SR_prod_groupby:
         with srv_SRVAD1['create_engine'][0].connect() as conn:
             sql = f"""
             SELECT v.mes_no, v.batch_no
-            FROM vw_SOA_CHP_P208_IN_CRE_BATCH_OVER v
+            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_208_OVER_PARTITION] v
             INNER JOIN (
                 SELECT DISTINCT runno FROM adwind
                 WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
@@ -1910,22 +1829,22 @@ class ERP_SH_detail:
                     ),
                     AllHistory AS (
                         SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
-                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO]
+                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
                         FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
                         WHERE [STATUS_CODE] = ''S'' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
                         UNION ALL
                         SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
-                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO]
+                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
                         FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
                         WHERE [STATUS_CODE] = ''S'' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
                     ),
                     Ranked AS (
-                        SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[SECONDARY_TRANSACTION_QUANTITY], H.[BATCH_NO],
+                        SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[SECONDARY_TRANSACTION_QUANTITY], H.[BATCH_NO], H.[SUBINVENTORY_CODE], H.[ITEM_NO],
                                ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn
                         FROM AllHistory H
                         INNER JOIN TargetLots_Range T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
                     )
-                    SELECT [Actual_Lot_Number] AS [LOT_NUMBER], [TRANSACTION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO]
+                    SELECT [Actual_Lot_Number] AS [LOT_NUMBER], [TRANSACTION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
                     FROM Ranked WHERE rn = 1
                 ')
             ),
@@ -1940,7 +1859,7 @@ class ERP_SH_detail:
             ),
             raw_data as
             (
-                select a.batch_no, b.stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, b.re as orig_re, t.SECONDARY_TRANSACTION_QUANTITY, t.TRANSACTION_DATE, grain, pclass, x_yn, bdtm,
+                select a.batch_no, b.stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, b.re as orig_re, t.SECONDARY_TRANSACTION_QUANTITY, t.TRANSACTION_DATE, grain, pclass, x_yn, bdtm, t.SUBINVENTORY_CODE, t.ITEM_NO,
                        CASE WHEN t.BATCH_NO = a.batch_no THEN t.LOT_NUMBER ELSE '' END AS LOT_NUMBER
                 from p208_data a
                 inner join adpack b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass <> 'A')
@@ -1949,7 +1868,7 @@ class ERP_SH_detail:
 
                 union
 
-                select a.batch_no, b.stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, b.re as orig_re, t.SECONDARY_TRANSACTION_QUANTITY, t.TRANSACTION_DATE, grain, pclass, x_yn, bdtm,
+                select a.batch_no, b.stkno, mname, bdate, runno, bhno, ptype, pgramg, psize1, psize2, pack, rewt, b.re as orig_re, t.SECONDARY_TRANSACTION_QUANTITY, t.TRANSACTION_DATE, grain, pclass, x_yn, bdtm, t.SUBINVENTORY_CODE, t.ITEM_NO,
                        CASE WHEN t.BATCH_NO = a.batch_no THEN t.LOT_NUMBER ELSE '' END AS LOT_NUMBER
                 from p208_data a
                 inner join adsel b on b.runno = a.mes_no and (b.pclass = substring(a.item_no,6,1) or b.pclass in ('A','P') or b.pclass is null)
@@ -1958,12 +1877,8 @@ class ERP_SH_detail:
             )
             SELECT *, rewt*orig_re*0.0004535924 AS T,
             CASE WHEN x_yn = 'Y' THEN '外銷' ELSE '內銷' END AS ExportSales,
-            CASE WHEN x_yn = 'Y' THEN 'A4FG'
-            WHEN x_yn = 'N' AND substring(runno,1,1) = 'R' THEN 'A3FG'
-            WHEN x_yn = 'N' AND substring(runno,1,1) = 'S' THEN 'A2FG'
-            WHEN x_yn = 'N' AND substring(runno,1,1) = 'W' THEN 'A1FG'
-            END AS store,
-            '4'+ptype+pclass+RIGHT('000' + CAST(CAST(CAST(pgramg AS FLOAT) * 10 AS INT) AS VARCHAR), 5)+psize1+psize2 AS itemNo
+            SUBINVENTORY_CODE AS store,
+            ITEM_NO AS itemNo
             FROM raw_data
             """
             query = conn.execute(text(sql))
@@ -1997,7 +1912,7 @@ class ERP_SH_detail:
 
         srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01']
         with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:
-            in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique())])
+            in_list = ", ".join([f"''{item}''" for item in list(df_result['itemNo'].unique()) if item])
             sql = f"""
             SELECT * FROM OPENQUERY(ERPDB, 'SELECT ITEM_NUMBER,CATALOG_ELEM_VAL_010,CATALOG_ELEM_VAL_060 FROM XXIFV050_ITEMS_FTA_V WHERE ITEM_NUMBER IN ({in_list})')
             """
