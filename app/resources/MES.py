@@ -737,14 +737,14 @@ class ERP_SR_summary:
         srv_SRVAD1 = self.servers['SRVAD1'] 
         with srv_SRVAD1['create_engine'][0].connect() as conn: 
             sql = f"""
-            SELECT v.mes_no, v.batch_no
-            FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_208_OVER_PARTITION] v
-            INNER JOIN (
-                SELECT DISTINCT runno FROM adwind
-                WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
-                AND bdate BETWEEN '{stime}' AND '{etime}'
-                AND prod IN ('1','2','4','7','8')
-            ) a ON v.mes_no = a.runno 
+                SELECT v.mes_no, v.batch_no
+                FROM [10.10.1.27].[YFYPRODERP_FTA].[dbo].[XXIF_CHP_208_OVER_PARTITION] v
+                INNER JOIN (
+                    SELECT DISTINCT runno FROM adwind
+                    WHERE mname IN ({mname_t}) AND substring(runno,1,1) = {sub_r}
+                    AND bdate BETWEEN '{stime}' AND '{etime}'
+                    AND prod IN ('1','2','4','7','8')
+                ) a ON v.mes_no = a.runno
             """       
             query = conn.execute(text(sql))
             df_batch_no = pd.DataFrame([dict(i) for i in query])
