@@ -745,6 +745,7 @@ class ERP_SR_summary:
                     AND bdate BETWEEN '{stime}' AND '{etime}'
                     AND prod IN ('1','2','4','7','8')
                 ) a ON v.mes_no = a.runno
+                WHERE v.rn = 1
             """       
             query = conn.execute(text(sql))
             df_batch_no = pd.DataFrame([dict(i) for i in query])
