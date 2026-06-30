@@ -1276,21 +1276,32 @@ class ERP_SR_detail:
             ),
             AllHistory AS (
                 SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
-                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
+                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO],
+                       [RXID], [PREVIOUS_RXID]
                 FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
                 WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
                 UNION ALL
                 SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
-                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
+                       [TRANSACTION_DATE], [CREATION_DATE], [TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO],
+                       [RXID], [PREVIOUS_RXID]
                 FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
                 WHERE [STATUS_CODE] = 'S' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
             ),
             Ranked AS (
                 SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[TRANSACTION_QUANTITY], H.[BATCH_NO], H.[SUBINVENTORY_CODE], H.[ITEM_NO],
-                       ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY H.[Actual_Lot_Number] 
+                           ORDER BY CASE WHEN H.[TRANSACTION_QUANTITY] <> 0 THEN 1 ELSE 2 END ASC, 
+                                    H.[TRANSACTION_DATE] DESC, 
+                                    H.[CREATION_DATE] DESC
+                       ) AS rn,
                        COUNT(*) OVER (PARTITION BY H.[Actual_Lot_Number]) AS lot_count
                 FROM AllHistory H
                 INNER JOIN TargetLots_Range T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM AllHistory H2 
+                    WHERE H2.[PREVIOUS_RXID] = H.[RXID]
+                )
             ),
             TargetLots AS (
                 SELECT [Actual_Lot_Number], [TRANSACTION_DATE], [TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO],
@@ -1830,23 +1841,36 @@ class ERP_SH_detail:
                     ),
                     AllHistory AS (
                         SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]) AS [Actual_Lot_Number],
-                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
+                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO],
+                               [RXID], [PREVIOUS_RXID]
                         FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
                         WHERE [STATUS_CODE] = ''S'' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
                         UNION ALL
                         SELECT ISNULL([LOT_NUMBER], [ATTRIBUTE15]),
-                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
+                               [TRANSACTION_DATE], [CREATION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO],
+                               [RXID], [PREVIOUS_RXID]
                         FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
                         WHERE [STATUS_CODE] = ''S'' AND ISNULL([LOT_NUMBER], [ATTRIBUTE15]) IS NOT NULL
                     ),
                     Ranked AS (
                         SELECT H.[Actual_Lot_Number], H.[TRANSACTION_DATE], H.[CREATION_DATE], H.[SECONDARY_TRANSACTION_QUANTITY], H.[BATCH_NO], H.[SUBINVENTORY_CODE], H.[ITEM_NO],
-                               ROW_NUMBER() OVER (PARTITION BY H.[Actual_Lot_Number] ORDER BY H.[TRANSACTION_DATE] DESC, H.[CREATION_DATE] DESC) AS rn
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY H.[Actual_Lot_Number] 
+                                   ORDER BY CASE WHEN H.[SECONDARY_TRANSACTION_QUANTITY] <> 0 THEN 1 ELSE 2 END ASC, 
+                                            H.[TRANSACTION_DATE] DESC, 
+                                            H.[CREATION_DATE] DESC
+                               ) AS rn
                         FROM AllHistory H
                         INNER JOIN TargetLots_Range T ON H.[Actual_Lot_Number] = T.[Actual_Lot_Number]
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM AllHistory H2
+                            WHERE H2.[PREVIOUS_RXID] = H.[RXID]
+                        )
                     )
                     SELECT [Actual_Lot_Number] AS [LOT_NUMBER], [TRANSACTION_DATE], [SECONDARY_TRANSACTION_QUANTITY], [BATCH_NO], [SUBINVENTORY_CODE], [ITEM_NO]
-                    FROM Ranked WHERE rn = 1
+                    FROM Ranked 
+                    WHERE rn = 1
+                      AND [TRANSACTION_DATE] >= ''{start_Time}'' AND [TRANSACTION_DATE] <= ''{end_Time}''
                 ')
             ),
             p208_data AS (
