@@ -4606,7 +4606,7 @@ class Relno_production_history:
                                 group by a.mname, a.y_mk, a.relno, a.winsno, a.runno, a.bdate, a.olenth, b.width
                             ) o
                             group by mname, relno, width
-                        ) t on t.relno = e.relno
+                        ) t on t.relno = e.relno and t.mname = e.mname
                         WHERE e.relno = @relno
                     ) e on e.relno=a.relno and e.sno='1'
                     left join bmatst f on f.relno=a.relno
@@ -4685,7 +4685,7 @@ class vehicles_daily_schedule:
                   ,[line_no]
               FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
             where [vehicles_daily_dispatch].weigh_date between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
-            order by weigh_date,serial_no
+            order by weigh_date,company,serial_no
             """       
             query = conn.execute(text(sql))  
             df_result = pd.DataFrame([dict(i) for i in query])
@@ -4716,7 +4716,7 @@ class vehicles_daily_schedule:
                     "cat": cat,
                     "itno": itno,
                     "erp_ver": erp_ver,
-                    "lino" : lino
+                    "lino_no" : lino
                 } 
                 for t_id, wdate, sno, payload, load_loc, owner, v_id, unload_loc, in_time, unload_time, 
                     cp_wt, fac_wt, pay_wt, order_no, note, comp, cat, itno, erp_ver, lino in zip(
