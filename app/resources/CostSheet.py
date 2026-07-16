@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
 
 
 import pandas as pd
@@ -19,20 +18,17 @@ from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
 
-# In[ ]:
 
 
 import logging
 logger = logging.getLogger(__name__)  # 取得和主程式共用的 logger
 
 
-# In[ ]:
 
 
 # 成本單
 
 
-# In[ ]:
 
 
 class product_cost_details:
@@ -495,7 +491,7 @@ class product_cost_details:
                               ,convert(datetime,convert(varchar(10), Dateadd(HOUR,-8,[TRANSACTION_DATE]), 120),120) as bdate
                               ,[LOT_NUMBER]
                               ,[STATUS]
-                          FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                          FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
                           WHERE 1=1
                           AND convert(datetime,convert(varchar(10), Dateadd(HOUR,-8,[TRANSACTION_DATE]), 120),120) between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
                           AND MACHINE_NO IN ('18','19','20','21')
@@ -1207,6 +1203,11 @@ class product_cost_details:
             stime_d = (datetime.datetime.strptime(etime, "%Y%m")).strftime('%Y-%m-%d')
             etime_d = (datetime.datetime.strptime(etime, "%Y%m") + relativedelta(months=1)  - timedelta(days=1)).strftime('%Y-%m-%d')
             
+            if datetime.datetime.strptime(stime, "%Y%m") >= datetime.datetime.strptime("202605", "%Y%m"):
+                p250_table = "XXIF_CHP_P211_IN_MMT_PROD_ST"
+            else:
+                p250_table = "XXIF_CHP_P250_IN_MMT_PROD_ST"            
+            
             srv_CHPGTERPDBAAR01 = self.servers['CHPGTERPDBAAR01'] 
             with srv_CHPGTERPDBAAR01['create_engine'][0].connect() as conn:                            
                 sql =   """
@@ -1254,7 +1255,7 @@ class product_cost_details:
                         WHERE 1=1
                         GROUP BY BATCH_NO,ptype,gramg
                     ) t
-                    LEFT JOIN [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST] P250 ON t.BATCH_NO = P250.BATCH_NO 
+                    LEFT JOIN [YFYPRODERP_FTA].[dbo].["""+ p250_table +"""] P250 ON t.BATCH_NO = P250.BATCH_NO 
                     GROUP BY t.BATCH_NO
                 ) n
                 WHERE PN4 IS NOT NULL AND BW IS NOT NULL
@@ -3277,13 +3278,11 @@ class product_cost_details:
         return result_json
 
 
-# In[ ]:
 
 
 # 約當量
 
 
-# In[ ]:
 
 
 class product_cost_equivalent:
@@ -3714,7 +3713,7 @@ class product_cost_equivalent:
                               ,convert(datetime,convert(varchar(10), Dateadd(HOUR,-8,[TRANSACTION_DATE]), 120),120) as bdate
                               ,[LOT_NUMBER]
                               ,[STATUS]
-                          FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                          FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
                           WHERE 1=1
                           AND convert(datetime,convert(varchar(10), Dateadd(HOUR,-8,[TRANSACTION_DATE]), 120),120) between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
                           AND MACHINE_NO IN ('18','19','20','21')
@@ -4460,7 +4459,7 @@ class product_cost_equivalent:
                         WHERE 1=1
                         GROUP BY BATCH_NO,ptype,gramg
                     ) t
-                    LEFT JOIN [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST] P250 ON t.BATCH_NO = P250.BATCH_NO 
+                    LEFT JOIN [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST] P250 ON t.BATCH_NO = P250.BATCH_NO 
                     GROUP BY t.BATCH_NO
                 ) n
                 WHERE PN4 IS NOT NULL AND BW IS NOT NULL
@@ -4737,13 +4736,11 @@ class product_cost_equivalent:
         return result_json           
 
 
-# In[ ]:
 
 
 # monthly_equivalent_production
 
 
-# In[ ]:
 
 
 class monthly_equivalent_production:
@@ -4894,13 +4891,11 @@ class monthly_equivalent_production:
         return result_json
 
 
-# In[ ]:
 
 
 # monthly_ERP_inventory
 
 
-# In[ ]:
 
 
 class monthly_ERP_inventory:
@@ -5013,13 +5008,11 @@ class monthly_ERP_inventory:
         return result_json
 
 
-# In[ ]:
 
 
 # monthly_yield_rate
 
 
-# In[ ]:
 
 
 class monthly_yield_rate:
@@ -5272,13 +5265,11 @@ class monthly_yield_rate:
         return result_json
 
 
-# In[ ]:
 
 
 # ERP_inventory
 
 
-# In[ ]:
 
 
 class ERP_inventory:
@@ -5345,7 +5336,7 @@ class ERP_inventory:
                           ,convert(datetime,convert(varchar(10), Dateadd(HOUR,-8,[TRANSACTION_DATE]), 120),120) as bdate
                           ,[LOT_NUMBER]
                           ,[STATUS]
-                      FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P250_IN_MMT_PROD_ST]
+                      FROM [YFYPRODERP_FTA].[dbo].[XXIF_CHP_P211_IN_MMT_PROD_ST]
                       WHERE 1=1
                       AND convert(datetime,convert(varchar(10), Dateadd(HOUR,-8,[TRANSACTION_DATE]), 120),120) between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
                       --AND MACHINE_NO IN ('18','19','20','21')
@@ -5940,13 +5931,11 @@ class ERP_inventory:
         return result_json
 
 
-# In[ ]:
 
 
 # End_work_in_process
 
 
-# In[ ]:
 
 
 class End_work_in_process:
@@ -6003,7 +5992,6 @@ class End_work_in_process:
         return result_json
 
 
-# In[ ]:
 
 
 class monthly_fixed_fee:
@@ -6056,7 +6044,6 @@ class monthly_fixed_fee:
         return result_json
 
 
-# In[ ]:
 
 
 class monthly_energy_usage:
@@ -6128,7 +6115,6 @@ class monthly_energy_usage:
         return result_json
 
 
-# In[ ]:
 
 
 class monthly_Cost_sheet:

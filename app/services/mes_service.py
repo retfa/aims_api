@@ -21,6 +21,7 @@ from resources.MES import (
     Defect_induced_recycle_chart,
     Yield_daily_report,
     Relno_production_history,
+    Relno_production_history_duration,
     vehicles_daily_schedule,
     scale_weigh_tickets
 )
@@ -47,7 +48,9 @@ class MESService:
         self.defect_report_fetcher = Defect_induced_recycle_analysis_report(servers=servers)
         self.defect_chart_fetcher = Defect_induced_recycle_chart(servers=servers)
         self.yield_fetcher = Yield_daily_report(servers=servers)
+        
         self.relno_fetcher = Relno_production_history(servers=servers) 
+        self.relno_duration_fetcher = Relno_production_history_duration(servers=servers) 
         
         self.vehicles_daily_schedule_fetcher = vehicles_daily_schedule(servers=servers)
         
@@ -103,6 +106,9 @@ class MESService:
 
     def relno_production_history(self, relno):
         return self.relno_fetcher.fetch(relno=relno)    
+    
+    def relno_production_history_duration(self, stime, etime, mname, relno):
+        return self.relno_duration_fetcher.fetch(stime=stime, etime=etime, mname=mname, relno=relno)
     
     def get_vehicles_daily_schedule(self, stime, etime, mname):
         return self.vehicles_daily_schedule_fetcher.fetch(stime, etime, mname)

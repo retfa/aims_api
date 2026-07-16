@@ -350,6 +350,21 @@ def get_relno_history(
 def post_relno_history():
     return JSONResponse(content={"success": False, "message": "Please use GET"})
 
+@router.get("/Relno-production-history-duration", summary="查詢 MES 的 區間生產履歷")
+def get_relno_history_duration(
+    stime: str = Query(default=None, alias="stime", description="起始日期，格式yyyy-mm-dd"),
+    etime: str = Query(default=None, alias="etime", description="結束日期，格式yyyy-mm-dd"),
+    mname: str = Query(default=None, alias="mname", description="格式 18、19、20、21"),
+    relno: str = Query(None, alias="relno", description="紙捲號碼"),
+    svc: MESService = Depends(get_service)
+):
+    result = svc.relno_production_history_duration(stime, etime, mname, relno)
+    return JSONResponse(content=result)
+
+@router.post("/Relno-production-history-duration")
+def post_relno_history_duration():
+    return JSONResponse(content={"success": False, "message": "Please use GET"})
+
 
 @router.get("/Vehicles-daily-schedule", summary="查詢 MES 的 原物料廠商出車表")
 def get_vehicles_daily_schedule(

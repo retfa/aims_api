@@ -4635,6 +4635,497 @@ class Relno_production_history:
 
 
 
+class Relno_production_history_duration:
+    def __init__(self, servers):
+        self.servers = servers     
+    
+    def fetch(self, stime: str, etime: str, mname: str, relno: str):
+        startTime = time.time()
+
+        if not stime:
+            return {'success': False, 'message': 'Missing date_from parameter'}
+        if not etime:
+            return {'success': False, 'message': 'Missing date_to parameter'}
+        if not mname:
+            return {'success': False, 'message': 'Missing mname parameter'}       
+
+        try:
+            srv_SRVAD1 = self.servers['SRVAD1'] 
+            with srv_SRVAD1['create_engine'][0].connect() as conn:
+                if not relno:
+                    sql = """
+                        DECLARE @stime datetime = :stime;
+                        DECLARE @etime datetime = :etime;
+                        DECLARE @mname int = :mname; 
+
+                        SELECT
+                            w.mname as s,
+                            w.winno as s_relno,
+                            w.ptype as s_ptype,
+                            w.pgramg as s_pgramg,
+                            w.lenth as s_lenth,
+                            w.width as s_width,
+                            w.weigh as s_weigh,
+                            w.weigh as s_rweigh,
+
+                            NULL AS s_wei,
+                            NULL AS s_wei_rate,
+
+                            NULL as s_lenth_rate,
+                            NULL as s_width_rate,
+                            NULL as s_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = w.mname AND substring(winno,1,8) = w.relno) THEN 'Y' ELSE 'N' END AS s_QC_record
+
+                        FROM ( SELECT *,left(winno,8) as relno FROM [AMIS].[dbo].[adcutt_win] ) w
+                        Left join amreel a
+                        on w.relno = a.relno
+                        WHERE a.bdate between @stime and @etime
+                        and a.mname = @mname
+                        order by s_relno                
+                    """
+
+                    query = conn.execute(text(sql), stime = stime, etime = etime, mname = mname)
+                    df_result_1 = pd.DataFrame([dict(i) for i in query])                
+                
+                    sql =   """
+
+                    DECLARE @stime datetime = :stime;
+                    DECLARE @etime datetime = :etime;
+                    DECLARE @mname int = :mname; 
+
+                    select a.mname as m,
+                            a.relno as m_relno,
+                            a.ptype as m_ptype,
+                            a.rgramg as m_rgramg,
+                            a.lenth as m_lenth,
+                            a.width as m_width,
+                            a.weigh as m_weigh,
+                            a.rweigh as m_rweigh,
+
+                            CASE WHEN a.recycle='N' and a.back>0 then CONVERT(decimal(18,6), CONVERT(int,a.back)*a.width*a.gramg/1000000000.0)
+                                 WHEN a.recycle='Y' then CONVERT(decimal(18,6), a.weigh) ELSE 0 end AS m_wei,
+                            CASE WHEN a.recycle='N' and a.back>0 then CONVERT(decimal(18,6), (CONVERT(int,a.back)*a.width*a.gramg/1000000000.0) / a.weigh)
+                                 WHEN a.recycle='Y' then CONVERT(decimal(18,6), 1.0) ELSE CONVERT(decimal(18,6), 0.0) end AS m_wei_rate,
+                            NULL AS m_lenth_rate,
+                            NULL AS m_width_rate,
+                            NULL AS m_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = a.mname AND chkno = a.relno) THEN 'Y' ELSE 'N' END AS m_QC_record,
+
+                            b.mname as r,
+                            b.rgramg as r_rgramg,
+                            b.lenth as r_lenth,
+                            b.width as r_width,
+                            b.weigh as r_weigh,
+                            b.rweigh as r_rweigh,
+
+                            CASE WHEN b.recycle='N' and b.back>0 then CONVERT(decimal(18,6), CONVERT(int,b.back)*b.width*b.gramg/1000000000.0)
+                                 WHEN b.recycle='Y' then CONVERT(decimal(18,6), b.weigh) ELSE 0 end AS r_wei,
+                            CASE WHEN b.recycle='N' and b.back>0 then CONVERT(decimal(18,6), (CONVERT(int,b.back)*b.width*b.gramg/1000000000.0) / b.weigh)
+                                 WHEN b.recycle='Y' then CONVERT(decimal(18,6), 1.0) ELSE CONVERT(decimal(18,6), 0.0) end AS r_wei_rate,
+
+                            ROUND(CAST((b.lenth - b.back) / (b.blenth * 1.0) AS float),8) AS r_lenth_rate,
+                            ROUND(CAST((b.width) / (b.bwidth * 1.0) AS float),8) AS r_width_rate,
+                            ROUND(CAST(( (b.lenth - b.back) / (b.blenth * 1.0) ) * ( (b.width) / (b.bwidth * 1.0) )AS float),8) AS r_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = b.mname AND chkno = a.relno) THEN 'Y' ELSE 'N' END AS r_QC_record,
+
+                            c.mname as c,
+                            c.rgramg as c_rgramg,
+                            c.lenth as c_lenth,
+                            c.width as c_width,
+                            c.weigh as c_weigh,
+                            c.rweigh as c_rweigh,
+
+                            CASE WHEN c.recycle='N' and c.back>0 then CONVERT(decimal(18,6), CONVERT(int,c.back)*c.width*c.gramg/1000000000.0)
+                                 WHEN c.recycle='Y' then CONVERT(decimal(18,6), c.weigh) ELSE 0 end AS c_wei,
+                            CASE WHEN c.recycle='N' and c.back>0 then CONVERT(decimal(18,6), (CONVERT(int,c.back)*c.width*c.gramg/1000000000.0) / c.weigh)
+                                 WHEN c.recycle='Y' then CONVERT(decimal(18,6), 1.0) ELSE CONVERT(decimal(18,6), 0.0) end AS c_wei_rate,
+
+                            ROUND(CAST((c.lenth - c.back) / (c.blenth * 1.0) AS float),8) AS c_lenth_rate,
+                            ROUND(CAST((c.width) / (c.width * 1.0) AS float),8) AS c_width_rate,
+                            ROUND(CAST(( (c.lenth - c.back) / (c.blenth * 1.0) ) * ( (c.width) / (c.width * 1.0) )AS float),8) AS c_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = c.mname AND chkno = a.relno) THEN 'Y' ELSE 'N' END AS c_QC_record,
+
+                            d.mname as e,
+                            d.rgramg as e_rgramg,
+                            d.lenth as e_lenth,
+                            d.width as e_width,
+                            d.weigh as e_weigh,
+                            d.rweigh as e_rweigh,
+
+                            CASE WHEN d.recycle='N' and d.back>0 then CONVERT(decimal(18,6), CONVERT(int,d.back)*d.width*d.gramg/1000000000.0)
+                                 WHEN d.recycle='Y' then CONVERT(decimal(18,6), d.weigh) ELSE 0 end AS e_wei,
+                            CASE WHEN d.recycle='N' and d.back>0 then CONVERT(decimal(18,6), (CONVERT(int,d.back)*d.width*d.gramg/1000000000.0) / d.weigh)
+                                 WHEN d.recycle='Y' then CONVERT(decimal(18,6), 1.0) ELSE CONVERT(decimal(18,6), 0.0) end AS e_wei_rate,
+
+                            ROUND(CAST((d.lenth - d.back) / (d.blenth * 1.0) AS float),8) AS e_lenth_rate,
+                            ROUND(CAST((d.width) / (d.width * 1.0) AS float),8) AS e_width_rate,
+                            ROUND(CAST(( (d.lenth - d.back) / (d.blenth * 1.0) ) * ( (d.width) / (d.width * 1.0) )AS float),8) AS e_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = d.mname AND chkno = a.relno) THEN 'Y' ELSE 'N' END AS e_QC_record,
+
+                            e.mname as w,
+                            e.relno as w_relno,
+                            e.rgramg as w_rgramg,
+                            e.lenth as w_lenth,
+                            e.width as w_width,
+                            e.weigh as w_weigh,
+                            e.rweigh as w_rweigh,
+                            
+                            NULL AS w_wei,
+                            NULL AS w_wei_rate,                            
+                            
+                            w_lenth_rate,
+                            w_width_rate,
+                            w_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = e.mname AND substring(chkno,1,8) = e.relno) THEN 'Y' ELSE 'N' END AS w_QC_record
+
+                    from (SELECT * FROM amreel WHERE bdate between @stime and @etime and mname = @mname) a 
+                    left join amreld b on b.relno=a.relno and b.sno='1' 
+                    left join amcotr c on c.relno=a.relno and c.sno='1' 
+                    left join ampres d on d.relno=a.relno and d.sno='1' 
+                    left join (
+                        SELECT 
+                            CASE WHEN patch = 'C' THEN ROUND(CAST( e.lenth / ((e.blenth + e.plenth) * 1.0) AS float),8)
+                            WHEN patch = 'S' THEN ROUND(CAST((e.lenth) / ((e.blenth- e.plenth - t.olenth) * 1.0) AS float),8)
+                            ELSE ROUND(CAST((e.lenth) / ((e.blenth + e.plenth) * 1.0) AS float),8) END AS w_lenth_rate,
+                            ROUND(CAST((e.Wd_rate * 1.0 / 100.0) AS float),8) AS w_width_rate,
+                            CASE WHEN patch = 'C' THEN ROUND(CAST( e.warea / ((e.barea + e.parea) * 1.0) AS float),8)
+                                WHEN patch = 'S' THEN ROUND(CAST((e.warea) / ((e.barea- e.parea - t.oarea) * 1.0) AS float),8)
+                                ELSE ROUND(CAST((e.warea) / ((e.barea + e.parea) * 1.0) AS float),8) END AS w_Area_rate,
+                            e.*
+                        FROM amwind e
+                        left join (
+                            select
+                                MAX(bdate) AS bdate,
+                                mname, 
+                                relno,
+                                sum(olenth) as olenth, 
+                                convert(decimal(12,3),sum(olenth)*width/1000) as oarea 
+                            from (
+                                select a.mname, a.y_mk, a.relno, a.winsno, a.winno, a.runno, a.bdate, a.olenth, 
+                                case when b.width<100 then b.width*25.4 else b.width end as 'width' 
+                                from adwind a
+                                left join amwind b on a.relno = b.relno 
+                                where 1=1
+                                and a.y_mk >= year(getdate())-8 
+                                and a.bdate >= @stime
+                                group by a.mname, a.y_mk, a.relno, a.winsno, a.winno, a.runno, a.bdate, a.olenth, b.width
+                            ) o
+                            group by mname, relno, width
+                        ) t on t.relno = e.relno and t.mname = e.mname
+                        WHERE e.bdate >= @stime
+                    ) e on e.relno=a.relno and e.sno='1'
+                    left join bmatst f on f.relno=a.relno
+                    Left join amrunt g on g.runno=a.runno
+                    """         
+                    query = conn.execute(text(sql), stime = stime, etime = etime, mname = mname)
+                    df_result = pd.DataFrame([dict(i) for i in query])
+                else:
+                    sql = """
+                        DECLARE @stime datetime = :stime;
+                        DECLARE @etime datetime = :etime;
+                        DECLARE @mname int = :mname;
+                        DECLARE @relno varchar(8) = :relno;
+
+                        SELECT
+                            w.mname as s,
+                            w.winno as s_relno,
+                            w.ptype as s_ptype,
+                            w.pgramg as s_pgramg,
+                            w.lenth as s_lenth,
+                            w.width as s_width,
+                            w.weigh as s_weigh,
+                            w.weigh as s_rweigh,
+
+                            NULL AS s_wei,
+                            NULL AS s_wei_rate,
+
+                            NULL as s_lenth_rate,
+                            NULL as s_width_rate,
+                            NULL as s_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = w.mname AND substring(winno,1,8) = w.relno) THEN 'Y' ELSE 'N' END AS s_QC_record
+
+                        FROM ( SELECT *,left(winno,8) as relno FROM [AMIS].[dbo].[adcutt_win] ) w
+                        Left join amreel a
+                        on w.relno = a.relno
+                        WHERE a.bdate between @stime and @etime
+                        and a.mname = @mname and a.relno = @relno
+                        order by s_relno                
+                    """
+
+                    query = conn.execute(text(sql), stime = stime, etime = etime, mname = mname, relno = relno)
+                    df_result_1 = pd.DataFrame([dict(i) for i in query])                
+                
+                    sql =   """
+
+                    DECLARE @stime datetime = :stime;
+                    DECLARE @etime datetime = :etime;
+                    DECLARE @mname int = :mname; 
+                    DECLARE @relno varchar(8) = :relno;
+
+                    select a.mname as m,
+                            a.relno as m_relno,
+                            a.ptype as m_ptype,
+                            a.rgramg as m_rgramg,
+                            a.lenth as m_lenth,
+                            a.width as m_width,
+                            a.weigh as m_weigh,
+                            a.rweigh as m_rweigh,
+
+                            CASE WHEN a.recycle='N' and a.back>0 then CONVERT(decimal(18,6), CONVERT(int,a.back)*a.width*a.gramg/1000000000.0)
+                                 WHEN a.recycle='Y' then CONVERT(decimal(18,6), a.weigh) ELSE 0 end AS m_wei,
+                            CASE WHEN a.recycle='N' and a.back>0 then CONVERT(decimal(18,6), (CONVERT(int,a.back)*a.width*a.gramg/1000000000.0) / a.weigh)
+                                 WHEN a.recycle='Y' then CONVERT(decimal(18,6), 1.0) ELSE CONVERT(decimal(18,6), 0.0) end AS m_wei_rate,
+                            NULL AS m_lenth_rate,
+                            NULL AS m_width_rate,
+                            NULL AS m_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = a.mname AND chkno = a.relno) THEN 'Y' ELSE 'N' END AS m_QC_record,
+
+                            b.mname as r,
+                            b.rgramg as r_rgramg,
+                            b.lenth as r_lenth,
+                            b.width as r_width,
+                            b.weigh as r_weigh,
+                            b.rweigh as r_rweigh,
+
+                            CASE WHEN b.recycle='N' and b.back>0 then CONVERT(decimal(18,6), CONVERT(int,b.back)*b.width*b.gramg/1000000000.0)
+                                 WHEN b.recycle='Y' then CONVERT(decimal(18,6), b.weigh) ELSE 0 end AS r_wei,
+                            CASE WHEN b.recycle='N' and b.back>0 then CONVERT(decimal(18,6), (CONVERT(int,b.back)*b.width*b.gramg/1000000000.0) / b.weigh)
+                                 WHEN b.recycle='Y' then CONVERT(decimal(18,6), 1.0) ELSE CONVERT(decimal(18,6), 0.0) end AS r_wei_rate,
+
+                            ROUND(CAST((b.lenth - b.back) / (b.blenth * 1.0) AS float),8) AS r_lenth_rate,
+                            ROUND(CAST((b.width) / (b.bwidth * 1.0) AS float),8) AS r_width_rate,
+                            ROUND(CAST(( (b.lenth - b.back) / (b.blenth * 1.0) ) * ( (b.width) / (b.bwidth * 1.0) )AS float),8) AS r_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = b.mname AND chkno = a.relno) THEN 'Y' ELSE 'N' END AS r_QC_record,
+
+                            c.mname as c,
+                            c.rgramg as c_rgramg,
+                            c.lenth as c_lenth,
+                            c.width as c_width,
+                            c.weigh as c_weigh,
+                            c.rweigh as c_rweigh,
+
+                            CASE WHEN c.recycle='N' and c.back>0 then CONVERT(decimal(18,6), CONVERT(int,c.back)*c.width*c.gramg/1000000000.0)
+                                 WHEN c.recycle='Y' then CONVERT(decimal(18,6), c.weigh) ELSE 0 end AS c_wei,
+                            CASE WHEN c.recycle='N' and c.back>0 then CONVERT(decimal(18,6), (CONVERT(int,c.back)*c.width*c.gramg/1000000000.0) / c.weigh)
+                                 WHEN c.recycle='Y' then CONVERT(decimal(18,6), 1.0) ELSE CONVERT(decimal(18,6), 0.0) end AS c_wei_rate,
+
+                            ROUND(CAST((c.lenth - c.back) / (c.blenth * 1.0) AS float),8) AS c_lenth_rate,
+                            ROUND(CAST((c.width) / (c.width * 1.0) AS float),8) AS c_width_rate,
+                            ROUND(CAST(( (c.lenth - c.back) / (c.blenth * 1.0) ) * ( (c.width) / (c.width * 1.0) )AS float),8) AS c_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = c.mname AND chkno = a.relno) THEN 'Y' ELSE 'N' END AS c_QC_record,
+
+                            d.mname as e,
+                            d.rgramg as e_rgramg,
+                            d.lenth as e_lenth,
+                            d.width as e_width,
+                            d.weigh as e_weigh,
+                            d.rweigh as e_rweigh,
+
+                            CASE WHEN d.recycle='N' and d.back>0 then CONVERT(decimal(18,6), CONVERT(int,d.back)*d.width*d.gramg/1000000000.0)
+                                 WHEN d.recycle='Y' then CONVERT(decimal(18,6), d.weigh) ELSE 0 end AS e_wei,
+                            CASE WHEN d.recycle='N' and d.back>0 then CONVERT(decimal(18,6), (CONVERT(int,d.back)*d.width*d.gramg/1000000000.0) / d.weigh)
+                                 WHEN d.recycle='Y' then CONVERT(decimal(18,6), 1.0) ELSE CONVERT(decimal(18,6), 0.0) end AS e_wei_rate,
+
+                            ROUND(CAST((d.lenth - d.back) / (d.blenth * 1.0) AS float),8) AS e_lenth_rate,
+                            ROUND(CAST((d.width) / (d.width * 1.0) AS float),8) AS e_width_rate,
+                            ROUND(CAST(( (d.lenth - d.back) / (d.blenth * 1.0) ) * ( (d.width) / (d.width * 1.0) )AS float),8) AS e_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = d.mname AND chkno = a.relno) THEN 'Y' ELSE 'N' END AS e_QC_record,
+
+                            e.mname as w,
+                            e.relno as w_relno,
+                            e.rgramg as w_rgramg,
+                            e.lenth as w_lenth,
+                            e.width as w_width,
+                            e.weigh as w_weigh,
+                            e.rweigh as w_rweigh,
+                            
+                            NULL AS w_wei,
+                            NULL AS w_wei_rate,                            
+                            
+                            w_lenth_rate,
+                            w_width_rate,
+                            w_area_rate,
+                            CASE WHEN EXISTS (SELECT 1 FROM adqumk WHERE mname = e.mname AND substring(chkno,1,8) = e.relno) THEN 'Y' ELSE 'N' END AS w_QC_record
+
+                    from (SELECT * FROM amreel WHERE bdate between @stime and @etime and mname = @mname and relno = @relno) a 
+                    left join amreld b on b.relno=a.relno and b.sno='1' 
+                    left join amcotr c on c.relno=a.relno and c.sno='1' 
+                    left join ampres d on d.relno=a.relno and d.sno='1' 
+                    left join (
+                        SELECT 
+                            CASE WHEN patch = 'C' THEN ROUND(CAST( e.lenth / ((e.blenth + e.plenth) * 1.0) AS float),8)
+                            WHEN patch = 'S' THEN ROUND(CAST((e.lenth) / ((e.blenth- e.plenth - t.olenth) * 1.0) AS float),8)
+                            ELSE ROUND(CAST((e.lenth) / ((e.blenth + e.plenth) * 1.0) AS float),8) END AS w_lenth_rate,
+                            ROUND(CAST((e.Wd_rate * 1.0 / 100.0) AS float),8) AS w_width_rate,
+                            CASE WHEN patch = 'C' THEN ROUND(CAST( e.warea / ((e.barea + e.parea) * 1.0) AS float),8)
+                                WHEN patch = 'S' THEN ROUND(CAST((e.warea) / ((e.barea- e.parea - t.oarea) * 1.0) AS float),8)
+                                ELSE ROUND(CAST((e.warea) / ((e.barea + e.parea) * 1.0) AS float),8) END AS w_Area_rate,
+                            e.*
+                        FROM amwind e
+                        left join (
+                            select
+                                MAX(bdate) AS bdate,
+                                mname, 
+                                relno,
+                                sum(olenth) as olenth, 
+                                convert(decimal(12,3),sum(olenth)*width/1000) as oarea 
+                            from (
+                                select a.mname, a.y_mk, a.relno, a.winsno, a.winno, a.runno, a.bdate, a.olenth, 
+                                case when b.width<100 then b.width*25.4 else b.width end as 'width' 
+                                from adwind a
+                                left join amwind b on a.relno = b.relno 
+                                where 1=1
+                                and a.y_mk >= year(getdate())-8 
+                                and a.bdate >= @stime
+                                group by a.mname, a.y_mk, a.relno, a.winsno, a.winno, a.runno, a.bdate, a.olenth, b.width
+                            ) o
+                            group by mname, relno, width
+                        ) t on t.relno = e.relno and t.mname = e.mname
+                        WHERE e.bdate >= @stime
+                    ) e on e.relno=a.relno and e.sno='1'
+                    left join bmatst f on f.relno=a.relno
+                    Left join amrunt g on g.runno=a.runno
+                    """         
+                    query = conn.execute(text(sql), stime = stime, etime = etime, mname = mname, relno = relno)
+                    df_result = pd.DataFrame([dict(i) for i in query])                    
+
+            # 在 df_result（母產品）中新增 s 站點欄位，固定為 0，
+            # 以便與 df_result_1（子產品 winno）欄位結構一致，統一走同一套 pivot 邏輯
+            df_result['s'] = None
+            df_result['s_rgramg'] = None
+            df_result['s_lenth'] = None
+            df_result['s_width'] = None
+            df_result['s_weigh'] = None
+            df_result['s_rweigh'] = None
+            df_result['s_wei'] = None
+            df_result['s_wei_rate'] = None
+            df_result['s_lenth_rate'] = None
+            df_result['s_width_rate'] = None
+            df_result['s_area_rate'] = None
+            df_result['s_QC_record'] = None
+
+            if not df_result_1.empty:
+                # 在 df_result_1（子產品 winno）中新增 m/r/c/e/w 欄位，固定為 0，
+                # 並將 s_pgramg 對應為 s_rgramg、s_relno 對應為 m_relno，補上 m_ptype
+                df_result_1 = df_result_1.rename(columns={'s_pgramg': 's_rgramg', 's_relno': 'm_relno', 
+                                                          's_ptype': 'm_ptype'})
+                
+                for station in ['m', 'r', 'c', 'e', 'w']:
+                    df_result_1[station] = None
+                    for item in ['rgramg', 'lenth', 'width', 'weigh', 'rweigh', 'wei', 'wei_rate',
+                                 'lenth_rate', 'width_rate', 'area_rate', 'QC_record']:
+                        df_result_1[f'{station}_{item}'] = None  
+
+                # 合併母產品（df_result）與子產品（df_result_1），Union All
+                df_result = pd.concat([df_result, df_result_1], ignore_index=True, sort=False)
+                
+            # pivot：將 m/r/c/e/w 五組欄位轉為長格式，以 m_relno、m_ptype 為主索引
+            station_cols = {
+                'm': ['m', 'm_rgramg', 'm_lenth', 'm_width', 'm_weigh', 'm_rweigh', 'm_wei', 'm_wei_rate', 'm_lenth_rate', 'm_width_rate', 'm_area_rate', 'm_QC_record'],
+                'r': ['r', 'r_rgramg', 'r_lenth', 'r_width', 'r_weigh', 'r_rweigh', 'r_wei', 'r_wei_rate', 'r_lenth_rate', 'r_width_rate', 'r_area_rate', 'r_QC_record'],
+                'c': ['c', 'c_rgramg', 'c_lenth', 'c_width', 'c_weigh', 'c_rweigh', 'c_wei', 'c_wei_rate', 'c_lenth_rate', 'c_width_rate', 'c_area_rate', 'c_QC_record'],
+                'e': ['e', 'e_rgramg', 'e_lenth', 'e_width', 'e_weigh', 'e_rweigh', 'e_wei', 'e_wei_rate', 'e_lenth_rate', 'e_width_rate', 'e_area_rate', 'e_QC_record'],
+                'w': ['w', 'w_rgramg', 'w_lenth', 'w_width', 'w_weigh', 'w_rweigh', 'w_wei', 'w_wei_rate', 'w_lenth_rate', 'w_width_rate', 'w_area_rate', 'w_QC_record'],
+                's': ['s', 's_rgramg', 's_lenth', 's_width', 's_weigh', 's_rweigh', 's_wei', 's_wei_rate', 's_lenth_rate', 's_width_rate', 's_area_rate', 's_QC_record'],
+            }
+            
+            # 依欄位性質統一數值精度（pivot 前先處理，確保長格式內同一 item 格式一致）
+            item_round_map = {
+                'rgramg': 2,      # 實測基重
+                'lenth': 0,       # 紙捲長度
+                'width': 0,       # 紙捲寬度
+                'weigh': 3,       # 理論重量
+                'rweigh': 3,      # 實際重量
+                'wei': 3,         # 回爐量
+                'wei_rate': 2,    # 回爐率
+                'lenth_rate': 2,  # 長度得率
+                'width_rate': 2,  # 寬幅得率
+                'area_rate': 2,   # 面積得率
+                'QC_record': 0,   # 品質問題
+            }
+            for station, cols in station_cols.items():
+                for item_idx, item_name in enumerate(item_round_map.keys()):
+                    col = cols[item_idx + 1]
+                    if item_name == 'QC_record':
+                        # QC_record 為 'Y'/'N' 字串，不做數值轉換
+                        continue                    
+                    ndigits = item_round_map[item_name]
+                    df_result[col] = pd.to_numeric(df_result[col], errors='coerce').round(ndigits)
+                    if ndigits == 0:
+                        df_result[col] = df_result[col].astype('Int64')
+            
+            # item 名稱對應每個 station 內第2~12個欄位（扣掉開頭的 m/r/c/e/w 本身）
+            item_names = ['rgramg', 'lenth', 'width', 'weigh', 'rweigh', 'wei', 'wei_rate', 'lenth_rate', 'width_rate', 'area_rate', 'QC_record']
+
+            base = df_result[['m_relno', 'm_ptype']].copy()
+            long_rows = []
+            for item_idx, item_name in enumerate(item_names):
+                row = base.copy()
+                row['item'] = item_name
+                for station, cols in station_cols.items():
+                    # cols[0] 是 station 本身欄位(如 'm')，cols[1:] 才是11個item對應欄位
+                    row[station] = df_result[cols[item_idx + 1]]
+                long_rows.append(row)
+            df_long = pd.concat(long_rows, ignore_index=True)
+            df_long['item'] = pd.Categorical(df_long['item'], categories=item_names, ordered=True)
+            df_long = df_long.sort_values(by=['m_relno', 'item']).reset_index(drop=True)
+            df_long['item'] = df_long['item'].astype(str)
+
+            item_name_map = {
+                'rgramg': '實測基重',
+                'lenth': '紙捲長度',
+                'width': '紙捲寬度',
+                'weigh': '理論重量',
+                'rweigh': '實際重量',
+                'wei': '回爐量',
+                'wei_rate': '回爐率',
+                'lenth_rate': '長度得率',
+                'width_rate': '寬幅得率',
+                'area_rate': '面積得率',
+                'QC_record': '品質問題',
+            }
+            df_long['item'] = df_long['item'].map(item_name_map)
+
+        except Exception as e:
+            return {'success': False, 'message': f'Query failed: {str(e)}'}, 500
+
+        # 依 item 對應的精度，將 m/r/c/e/w 數值格式化為字串（整數欄位不留小數點）
+        item_format_map = {
+            '實測基重': 2, '紙捲長度': 0, '紙捲寬度': 0, '理論重量': 3,
+            '實際重量': 3, '回爐量': 3, '回爐率': 2, '長度得率': 2,
+            '寬幅得率': 2, '面積得率': 2, '品質問題': 0,
+        }
+
+        def format_value(x, ndigits, item_name=None):
+            if pd.isnull(x):
+                return None
+            if item_name == '品質問題':
+                # QC_record 為 'Y'/'N' 字串，直接回傳
+                return str(x)            
+            if ndigits == 0:
+                return str(int(round(float(x))))
+            return f'{float(x):.{ndigits}f}'
+
+        station_value_cols = ['m', 'r', 'c', 'e', 'w', 's']
+        for col in station_value_cols:
+            df_long[col] = df_long.apply(
+                lambda row: format_value(row[col], item_format_map[row['item']], row['item']), axis=1
+            )
+        df_long['m_relno'] = df_long['m_relno'].apply(lambda x: str(x) if pd.notnull(x) else None)
+        df_long['m_ptype'] = df_long['m_ptype'].apply(lambda x: str(x) if pd.notnull(x) else None)
+
+        # 建立 JSON 結構
+        result_json = {
+            "data": df_long.to_dict(orient='records')
+        }
+
+        ExecutionTime = time.time() - startTime
+
+        return result_json
+
+
+
+
 class vehicles_daily_schedule:
     def __init__(self, servers):
         self.servers = servers
@@ -4663,35 +5154,43 @@ class vehicles_daily_schedule:
         srv_SRVMESDBA1 = self.servers['SRVMESDBA1'] 
         with srv_SRVMESDBA1['create_engine'][0].connect() as conn:        
             sql =   """
-                SELECT TOP (1000) [id]
-                  ,[weigh_date]
-                  ,[serial_no]
-                  ,[payload]
-                  ,[loading_location]
-                  ,[owner]
-                  ,[vehicle_id]
-                  ,[unloading_location]
-                  ,[in_time]
-                  ,[unloading_time]
-                  ,[cp_wt]
-                  ,[factory_wt]
-                  ,[pay_wt]
-                  ,[order_no]
-                  ,[note]
-                  ,[company]
-                  ,[category]
-                  ,[item_no]
-                  ,[erp_version]
-                  ,[line_no]
-              FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
-            where [vehicles_daily_dispatch].weigh_date between '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
-            order by weigh_date,company,serial_no
+                SELECT TOP (1000) v.[id]
+                ,v.[weigh_date]
+                ,v.[serial_no]
+                ,v.[payload]
+                ,v.[loading_location]
+                ,v.[owner]
+                ,v.[vehicle_id]
+                ,v.[unloading_location]
+                ,v.[in_time]
+                ,v.[unloading_time]
+                ,v.[cp_wt]
+                ,v.[factory_wt]
+                ,v.[pay_wt]
+                ,v.[order_no]
+                ,v.[note]
+                ,v.[company]
+                ,v.[category]
+                ,v.[item_no]
+                ,v.[erp_version]
+                ,v.[line_no]
+                ,CASE 
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets] s
+                        WHERE s.[vehicle_dispatch_id] = v.[id]
+                    ) THEN 1 
+                    ELSE 0 
+                 END AS has_weigh_ticket
+            FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] v
+            WHERE v.weigh_date BETWEEN '"""+ str(stime) +"""' and '"""+ str(etime) +"""'
+            ORDER BY v.weigh_date, v.company, v.serial_no
             """       
             query = conn.execute(text(sql))  
             df_result = pd.DataFrame([dict(i) for i in query])
         
         for k in list(df_result.columns):
-            if k not in ['serial_no','item_no','erp_version']:
+            if k not in ['serial_no','item_no','erp_version','has_weigh_ticket']:
                 df_result[k] = df_result[k].astype(str)
             
         if not df_result.empty:
@@ -4716,10 +5215,11 @@ class vehicles_daily_schedule:
                     "cat": cat,
                     "itno": itno,
                     "erp_ver": erp_ver,
-                    "lino_no" : lino
+                    "lino_no" : lino,
+                    "has_weigh_ticket" : has_weigh_ticket
                 } 
                 for t_id, wdate, sno, payload, load_loc, owner, v_id, unload_loc, in_time, unload_time, 
-                    cp_wt, fac_wt, pay_wt, order_no, note, comp, cat, itno, erp_ver, lino in zip(
+                    cp_wt, fac_wt, pay_wt, order_no, note, comp, cat, itno, erp_ver, lino, has_weigh_ticket in zip(
                     df_result["id"],
                     df_result["weigh_date"],
                     df_result["serial_no"],
@@ -4739,7 +5239,8 @@ class vehicles_daily_schedule:
                     df_result["category"],
                     df_result["item_no"],
                     df_result["erp_version"],
-                    df_result["line_no"]   
+                    df_result["line_no"],
+                    df_result["has_weigh_ticket"]
                         
                 )
             ]
@@ -4772,17 +5273,32 @@ class vehicles_daily_schedule:
                     tickets
                 FROM
                 (
-                  SELECT 
+                    SELECT 
                     d.*,
-                    CAST(ROUND(t.net_wt / 1000.0,2) AS DECIMAL(18,2)) as tickets
-                  FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] d
-                  LEFT JOIN [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets] t 
-                    ON d.weigh_date = t.weigh_date 
-                   AND t.vehicle_id = d.vehicle_id
-                  WHERE t.weigh_date between '{stime}' and '{etime}'
-                ) t
+                    CAST(ROUND(t.net_wt / 1000.0,2) AS DECIMAL(18,2)) as tickets,
+                    CASE 
+                        WHEN EXISTS (
+                            SELECT 1 
+                            FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets] s
+                            WHERE s.[vehicle_dispatch_id] = d.[id]
+                        ) THEN 1 
+                        ELSE 0 
+                    END AS has_weigh_ticket
+                    FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] d
+                    OUTER APPLY (
+                        SELECT TOP 1 t2.*
+                        FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets] t2
+                        WHERE t2.weigh_date = d.weigh_date
+                          AND t2.vehicle_id = d.vehicle_id
+                          AND (
+                                ABS(DATEDIFF(MINUTE, d.in_time, t2.in_time)) <= 60
+                             OR ABS(DATEDIFF(MINUTE, d.in_time, t2.out_time)) <= 60
+                              )
+                    ) t
+                    WHERE t.weigh_date between '{stime}' and '{etime}'
+                ) m
+                WHERE has_weigh_ticket = 0
             )
-
             UPDATE [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch]
             SET cp_wt = Update_data.cp_wt,
                 pay_wt = Update_data.pay_wt
@@ -4794,11 +5310,19 @@ class vehicles_daily_schedule:
             UPDATE t
             SET t.vehicle_dispatch_id = d.id
             FROM [FTA_TRUCK_SCALE_2026].[dbo].[scale_weigh_tickets] t
-            INNER JOIN [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] d 
-                ON t.weigh_date = d.weigh_date
-               AND t.vehicle_id = d.vehicle_id
-            WHERE t.weigh_date between '{stime}' and '{etime}'
-              AND d.cp_wt IS NOT NULL;
+            OUTER APPLY (
+                SELECT TOP 1 d2.*
+                FROM [FTA_TRUCK_SCALE_2026].[dbo].[vehicles_daily_dispatch] d2
+                WHERE d2.weigh_date = t.weigh_date
+                  AND d2.vehicle_id = t.vehicle_id
+                  AND d2.cp_wt IS NOT NULL
+                  AND (
+                        ABS(DATEDIFF(MINUTE, t.in_time, d2.in_time)) <= 60
+                     OR ABS(DATEDIFF(MINUTE, t.out_time, d2.in_time)) <= 60
+                      )
+            ) d
+            WHERE t.weigh_date BETWEEN '{stime}' AND '{etime}'
+              AND d.id IS NOT NULL;
             """
 
             conn.execute(text(sql))
