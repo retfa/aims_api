@@ -23,8 +23,11 @@ from resources.MES import (
     Relno_production_history,
     Relno_production_history_duration,
     vehicles_daily_schedule,
-    scale_weigh_tickets
+    scale_weigh_tickets,
+    blanket_replacement_record
 )
+from resources.energy import energy_daily_sttlement
+from resources.truck_scale import truck_scale_payloads
 
 class MESService:
 
@@ -55,6 +58,10 @@ class MESService:
         self.vehicles_daily_schedule_fetcher = vehicles_daily_schedule(servers=servers)
         
         self.scale_weigh_tickets_fetcher = scale_weigh_tickets(servers=servers)
+        
+        self.blanket_fetcher = blanket_replacement_record(servers=servers)
+        self.energy_daily_settlement_fetcher = energy_daily_sttlement(servers=servers)
+        self.truck_scale_payloads_fetcher = truck_scale_payloads(servers=servers)
 
     def get_amreel_groupby_ptime(self, stime, etime, mname, machine_code=None):
         return self.amreel_fetcher.fetch(stime=stime, etime=etime, mname=mname, MachineCode=machine_code)
@@ -124,4 +131,46 @@ class MESService:
     
     def patch_scale_weigh_tickets(self, body: dict):
         return self.scale_weigh_tickets_fetcher.patch(body)  
+
+    def get_blanket_records(self, mname: str = None, year: int = None):
+        return self.blanket_fetcher.fetch(mname=mname, year=year)
+
+    def get_blanket_equipment(self):
+        return self.blanket_fetcher.fetch_equipment()
+
+    def post_blanket_record(self, mname: str, change_date: str, equipment_code: str, busr: str):
+        return self.blanket_fetcher.create(mname=mname, change_date=change_date, equipment_code=equipment_code, busr=busr)
+
+    def put_blanket_record(self, mname: str, change_date: str, equipment_code: str, new_change_date: str, new_equipment_code: str, busr: str):
+        return self.blanket_fetcher.update(mname=mname, change_date=change_date, equipment_code=equipment_code, new_change_date=new_change_date, new_equipment_code=new_equipment_code, busr=busr)
+
+    def delete_blanket_record(self, mname: str, change_date: str, equipment_code: str):
+        return self.blanket_fetcher.delete(mname=mname, change_date=change_date, equipment_code=equipment_code)
+
+    def get_energy_record(self, date: str):
+        return self.energy_daily_settlement_fetcher.fetch(date=date)
+
+    def patch_energy_record(self, sdate: str, body: dict, user_info: dict):
+        return self.energy_daily_settlement_fetcher.patch(sdate_str=sdate, update_fields=body, user_info=user_info)
+
+    def get_truck_scale_payloads(self, category: str = None):
+        return self.truck_scale_payloads_fetcher.fetch(category=category)
+
+    def create_truck_scale_payload(self, category: str, item_name: str, item_code: str, company: str = None, company_code: str = None, description: str = None, category_order: int = 0):
+        return self.truck_scale_payloads_fetcher.create(
+            category=category, item_name=item_name, item_code=item_code,
+            company=company, company_code=company_code, description=description,
+            category_order=category_order
+        )
+
+    def update_truck_scale_payload(self, id: int, item_name: str, category: str = None, item_code: str = None, company: str = None, company_code: str = None, description: str = None, category_order: int = None):
+        return self.truck_scale_payloads_fetcher.update(
+            id=id, item_name=item_name, category=category, item_code=item_code,
+            company=company, company_code=company_code, description=description,
+            category_order=category_order
+        )
+
+    def delete_truck_scale_payload(self, id: int):
+        return self.truck_scale_payloads_fetcher.delete(id=id)
+
 

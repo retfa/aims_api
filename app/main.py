@@ -64,7 +64,7 @@ from routers import (
     gz_data_prediction_status_router
 )
 
-from routers import mes_router, costsheet_router, coatingweight_router
+from routers import mes_router, costsheet_router, coatingweight_router, energy_router, truck_scale_router
 from routers import staff_meal_ordering_router
 from routers import outputlist_router
 from routers import permission_router
@@ -258,8 +258,17 @@ def create_app() -> FastAPI:
     app.include_router(gz_data_prediction_status_router.router)
     
     #---MES---
-    mes_router.service = MESService(servers=servers,redis_client=redis_client)
+    mes_service_instance = MESService(servers=servers,redis_client=redis_client)
+    mes_router.service = mes_service_instance
     app.include_router(mes_router.router)
+    
+    energy_router.service = mes_service_instance
+    app.include_router(energy_router.router)
+
+    truck_scale_router.service = mes_service_instance
+    app.include_router(truck_scale_router.router)
+
+
     
     costsheet_router.service = CostSheetService(servers=servers,redis_client=redis_client)
     app.include_router(costsheet_router.router)

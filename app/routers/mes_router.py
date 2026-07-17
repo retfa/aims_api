@@ -3,10 +3,13 @@
 
 
 
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from services.mes_service import MESService
-from schemas.mes_schema import ScaleWeighPatchBody, VehiclesPatchBody
+from schemas.mes_schema import ScaleWeighPatchBody, VehiclesPatchBody, PostBlanket, DeleteBlanket, PutBlanket
+from core.security import verify_jwt
+import time
+from datetime import datetime
 
 import logging
 
@@ -417,4 +420,183 @@ def patch_Scale_weigh_tickets(
     svc: MESService = Depends(get_service)
 ):
     return svc.patch_scale_weigh_tickets(body)
+
+
+@router.get("/Blanket_Replacement_Record", 
+            operation_id="get_blanket_records",
+            summary="查詢換毯紀錄")
+async def get_blanket_record(
+    MachineName: str = Query(None, alias="MachineName", description="機台名稱"),
+    Year: int = Query(None, alias="Year", description="查詢年份"),
+    svc: MESService = Depends(get_service),
+    jwt_payload = Depends(verify_jwt)
+):
+    start_time = time.time()
+    content = svc.get_blanket_records(mname=MachineName, year=Year)
+    
+    return {
+        "data": {
+            "Action": "GET",
+            "Content": content,
+            "ExecutionTime": f"{time.time() - start_time:.2f} ms",
+            "ExecutionDto": datetime.now().isoformat(),
+            "Length": len(content)
+        },
+        "success": True,
+        "status_code": 200
+    }
+
+
+@router.get("/Blanket_Replacement_Record/equipment", summary="獲取所有設備代碼和名稱的對應關係")
+async def get_all_equipment_codes(
+    svc: MESService = Depends(get_service),
+    jwt_payload = Depends(verify_jwt)
+):
+    start_time = time.time()
+    equipment_codes = svc.get_blanket_equipment()
+    
+    execution_time = time.time() - start_time
+    execution_dto = datetime.now().isoformat()
+
+    return {
+        "data": {
+            "Action": "GET",
+            "Content": equipment_codes,
+            "ExecutionTime": f"{execution_time:.2f} ms",
+            "ExecutionDto": execution_dto,
+            "Length": len(equipment_codes)
+        },
+        "success": True,
+        "status_code": 200
+    }
+
+
+@router.post("/Blanket_Replacement_Record", summary="新增換毯紀錄")
+async def post_blanket_record(
+    params: PostBlanket,
+    svc: MESService = Depends(get_service),
+    jwt_payload = Depends(verify_jwt)
+):
+    start_time = time.time()
+    busr = jwt_payload.get("FTAId", "demo")
+    
+    res = svc.post_blanket_record(
+        mname=params.mname,
+        change_date=params.Change_Date.strftime("%Y-%m-%d %H:%M:%S"),
+        equipment_code=params.Equipment_Code,
+        busr=busr
+    )
+    
+    if not res.get("success", False):
+        raise HTTPException(status_code=400, detail=res.get("message"))
+        
+    new_record = res.get("data")
+    execution_time = time.time() - start_time
+    return {
+        "data": {
+            "Action": "POST",
+            "Content": {
+                "mname": new_record["mname"],
+                "Change_Date": new_record["Change_Date"],
+                "Equipment_Name": new_record["Equipment_Name"],
+                "busr": new_record["busr"],
+                "Equipment_Code": new_record["Equipment_Code"]
+            },
+            "ExecutionTime": f"{execution_time:.2f} ms",
+            "ExecutionDto": datetime.now().isoformat(),
+            "Length": 1
+        },
+        "success": True,
+        "status_code": 201
+    }
+
+
+@router.put("/Blanket_Replacement_Record", summary="修改換毯紀錄")
+async def update_blanket_record(
+    mname: str = Query(..., description="機台名稱"),
+    Change_Date: str = Query(..., description="更換日期"),
+    Equipment_Code: str = Query(..., description="換毯資料"),
+    New_Change_Date: str = Query(..., description="新更換日期"),
+    New_Equipment_Code: str = Query(..., description="新換毯資料"),
+    svc: MESService = Depends(get_service),
+    jwt_payload = Depends(verify_jwt)
+):
+    start_time = time.time()
+    busr = jwt_payload.get("FTAId", "demo")
+    
+    res = svc.put_blanket_record(
+        mname=mname,
+        change_date=Change_Date,
+        equipment_code=Equipment_Code,
+        new_change_date=New_Change_Date,
+        new_equipment_code=New_Equipment_Code,
+        busr=busr
+    )
+    
+    if not res.get("success", False):
+        raise HTTPException(status_code=400, detail=res.get("message"))
+        
+    updated_record = res.get("data")
+    execution_time = time.time() - start_time
+    
+    return {
+        "data": {
+            "Action": "UPDATE",
+            "Content": {
+                "mname": updated_record["mname"],
+                "Change_Date": updated_record["Change_Date"],
+                "Equipment_Name": updated_record["Equipment_Name"],
+                "busr": updated_record["busr"],
+                "Equipment_Code": updated_record["Equipment_Code"]
+            },
+            "ExecutionTime": f"{execution_time:.2f} ms",
+            "ExecutionDto": datetime.now().isoformat(),
+            "Length": 1
+        },
+        "success": True,
+        "status_code": 200
+    }
+
+
+@router.delete("/Blanket_Replacement_Record", summary="刪除換毯紀錄")
+async def delete_blanket_record(
+    mname: str = Query(..., description="機台名稱"),
+    Change_Date: str = Query(..., description="更換日期"),
+    Equipment_Code: str = Query(..., description="換毯資料"),
+    svc: MESService = Depends(get_service),
+    jwt_payload = Depends(verify_jwt)
+):
+    start_time = time.time()
+    
+    res = svc.delete_blanket_record(
+        mname=mname,
+        change_date=Change_Date,
+        equipment_code=Equipment_Code
+    )
+    
+    if not res.get("success", False):
+        raise HTTPException(status_code=400, detail=res.get("message"))
+        
+    deleted_record = res.get("data")
+    execution_time = time.time() - start_time
+    execution_dto = datetime.now().isoformat()
+
+    return {
+        "data": {
+            "Action": "DELETE",
+            "Content": {
+                "mname": deleted_record["mname"],
+                "Change_Date": deleted_record["Change_Date"],
+                "Equipment_Name": deleted_record["Equipment_Name"],
+                "busr": deleted_record["busr"],
+                "Equipment_Code": deleted_record["Equipment_Code"]
+            },
+            "ExecutionTime": f"{execution_time:.2f} ms",
+            "ExecutionDto": execution_dto,
+            "Length": 1
+        },
+        "success": True,
+        "status_code": 200
+    }
+
 
