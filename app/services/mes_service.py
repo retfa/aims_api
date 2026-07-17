@@ -29,6 +29,7 @@ from resources.MES import (
 from resources.energy import energy_daily_sttlement
 from resources.truck_scale import truck_scale_payloads
 
+
 class MESService:
 
     def __init__(self, servers, redis_client=None):
@@ -61,7 +62,7 @@ class MESService:
         
         self.blanket_fetcher = blanket_replacement_record(servers=servers)
         self.energy_daily_settlement_fetcher = energy_daily_sttlement(servers=servers)
-        self.truck_scale_payloads_fetcher = truck_scale_payloads(servers=servers)
+        self.truck_scale_payloads_fetcher = truck_scale_payloads(servers=servers)        
 
     def get_amreel_groupby_ptime(self, stime, etime, mname, machine_code=None):
         return self.amreel_fetcher.fetch(stime=stime, etime=etime, mname=mname, MachineCode=machine_code)
@@ -130,8 +131,8 @@ class MESService:
         return self.scale_weigh_tickets_fetcher.fetch(stime, etime, mname)
     
     def patch_scale_weigh_tickets(self, body: dict):
-        return self.scale_weigh_tickets_fetcher.patch(body)  
-
+        return self.scale_weigh_tickets_fetcher.patch(body)
+    
     def get_blanket_records(self, mname: str = None, year: int = None):
         return self.blanket_fetcher.fetch(mname=mname, year=year)
 
@@ -171,6 +172,5 @@ class MESService:
         )
 
     def delete_truck_scale_payload(self, id: int):
-        return self.truck_scale_payloads_fetcher.delete(id=id)
-
+        return self.truck_scale_payloads_fetcher.delete(id=id)    
 

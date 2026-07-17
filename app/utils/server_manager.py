@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
 
 
 import pandas as pd
@@ -21,7 +20,7 @@ SERVER_LIST = {
     "CHPGTERPDBAAR01": "CHPGTERPDBAAR01",
     "SRVMESDBA1": "SRVMESDBA1",
     "SRVMESDBA1_FTA_TRUCK_SCALE_2026": "SRVMESDBA1_FTA_TRUCK_SCALE_2026",
-    "SRVAD8_A_energy": "SRVAD8_A_energy",
+    "SRVAD8_A_energy": "SRVAD8_A_energy",    
     "SRVAD2": "SRVAD2",
     "YFYAIDBA3": "YFYAIDBA3",
     "SRVADA1": "SRVADA1",
