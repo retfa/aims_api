@@ -71,6 +71,8 @@ from routers import permission_router
 
 from routers import redis_router
 
+from routers import dispatch_task_router
+
 # ==============================
 # Import service
 # ==============================
@@ -98,6 +100,7 @@ from services.system_service import SystemService
 
 from services.redis_service import RedisService
 
+from services.dispatch_task_service import DispatchTaskService
 # ==============================
 # Import utils
 # ==============================
@@ -273,6 +276,10 @@ def create_app() -> FastAPI:
     # system
     system_router.service = SystemService(servers=servers)
     app.include_router(system_router.router)
+    
+    # 手動觸發每日派車排程
+    dispatch_task_router.service = DispatchTaskService(redis_client=redis_client)
+    app.include_router(dispatch_task_router.router)    
     
     # --- 加大同步執行緒池的限制 ---
     @app.on_event("startup")
