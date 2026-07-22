@@ -267,8 +267,8 @@ def create_app() -> FastAPI:
 
     truck_scale_router.service = mes_service_instance
     app.include_router(truck_scale_router.router)
-
-
+    
+    
     
     costsheet_router.service = CostSheetService(servers=servers,redis_client=redis_client)
     app.include_router(costsheet_router.router)

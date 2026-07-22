@@ -11,6 +11,7 @@ from core.security import verify_jwt
 import time
 from datetime import datetime
 
+
 import logging
 
 from utils.async_utils import run_in_thread
@@ -420,7 +421,6 @@ def patch_Scale_weigh_tickets(
     svc: MESService = Depends(get_service)
 ):
     return svc.patch_scale_weigh_tickets(body)
-
 
 @router.get("/Blanket_Replacement_Record", 
             operation_id="get_blanket_records",

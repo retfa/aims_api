@@ -5151,7 +5151,7 @@ class vehicles_daily_schedule:
 #         else:
 #             pass        
 
-        srv_SRVMESDBA1 = self.servers['SRVMESDBA1_FTA_TRUCK_SCALE_2026'] 
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1_FTA_TRUCK_SCALE_2026']
         with srv_SRVMESDBA1['create_engine'][0].connect() as conn:        
             sql =   """
                 SELECT TOP (1000) v.[id]
@@ -5411,7 +5411,7 @@ class scale_weigh_tickets:
 #         else:
 #             pass        
 
-        srv_SRVMESDBA1 = self.servers['SRVMESDBA1_FTA_TRUCK_SCALE_2026'] 
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1_FTA_TRUCK_SCALE_2026']
         with srv_SRVMESDBA1['create_engine'][0].connect() as conn:        
             sql =   """
             SELECT TOP (1000) [station_name]
@@ -5590,6 +5590,167 @@ class scale_weigh_tickets:
             'unlinked_count': unlinked_count,
             'execution_time': round(ExecutionTime, 4),
             'errors': errors
+        }
+
+
+
+
+class blanket_replacement_record:
+    def __init__(self, servers):
+        self.servers = servers
+
+    def fetch(self, mname: str = None, year: int = None):
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
+        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
+            sql = "SELECT mname, Change_Date, Equipment_Name, Equipment_Code, busr FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE 1=1"
+            params = {}
+            if mname:
+                sql += " AND mname = :mname"
+                params['mname'] = mname
+            if year:
+                sql += " AND YEAR(Change_Date) = :year"
+                params['year'] = year
+            sql += " ORDER BY Change_Date DESC"
+            
+            query = conn.execute(text(sql), params)
+            df_result = pd.DataFrame([dict(i) for i in query])
+
+        if not df_result.empty:
+            if 'Change_Date' in df_result.columns:
+                df_result['Change_Date'] = df_result['Change_Date'].astype(str)
+            result_json = df_result.to_dict(orient="records")
+        else:
+            result_json = []
+
+        return result_json
+
+    def fetch_equipment(self):
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
+        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
+            sql = "SELECT mname, Equipment_Name, Equipment_Code FROM [AMIS].[dbo].[Blanket_Equipment_Code] ORDER BY mname, Equipment_Code"
+            query = conn.execute(text(sql))
+            df_result = pd.DataFrame([dict(i) for i in query])
+
+        if not df_result.empty:
+            result_json = df_result.to_dict(orient="records")
+        else:
+            result_json = []
+
+        return result_json
+
+    def create(self, mname: str, change_date: str, equipment_code: str, busr: str):
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
+        
+        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
+            sql_eq = "SELECT TOP 1 Equipment_Name FROM [AMIS].[dbo].[Blanket_Equipment_Code] WHERE mname = :mname AND Equipment_Code = :equipment_code"
+            res = conn.execute(text(sql_eq), {"mname": mname, "equipment_code": equipment_code}).fetchone()
+            if not res:
+                return {"success": False, "message": f"無法找到對應的 Equipment_Name for code {equipment_code}"}
+            equipment_name = res[0]
+
+            sql_check = "SELECT TOP 1 1 FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code"
+            res_chk = conn.execute(text(sql_check), {"mname": mname, "change_date": change_date, "equipment_code": equipment_code}).fetchone()
+            if res_chk:
+                return {"success": False, "message": "記錄已存在，無法重複新增"}
+
+        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
+            sql_insert = """
+                INSERT INTO [AMIS].[dbo].[Blanket_Replacement_Record] (mname, Change_Date, Equipment_Name, Equipment_Code, busr)
+                VALUES (:mname, :change_date, :equipment_name, :equipment_code, :busr)
+            """
+            conn.execute(text(sql_insert), {
+                "mname": mname,
+                "change_date": change_date,
+                "equipment_name": equipment_name,
+                "equipment_code": equipment_code,
+                "busr": busr
+            })
+
+        return {
+            "success": True,
+            "data": {
+                "mname": mname,
+                "Change_Date": change_date,
+                "Equipment_Name": equipment_name,
+                "busr": busr,
+                "Equipment_Code": equipment_code
+            }
+        }
+
+    def update(self, mname: str, change_date: str, equipment_code: str, new_change_date: str, new_equipment_code: str, busr: str):
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
+        
+        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
+            sql_check_old = "SELECT TOP 1 1 FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code"
+            res_old = conn.execute(text(sql_check_old), {"mname": mname, "change_date": change_date, "equipment_code": equipment_code}).fetchone()
+            if not res_old:
+                return {"success": False, "message": "找不到要更新的記錄"}
+
+            if change_date != new_change_date or equipment_code != new_equipment_code:
+                sql_check_new = "SELECT TOP 1 1 FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :new_change_date AND Equipment_Code = :new_equipment_code"
+                res_new = conn.execute(text(sql_check_new), {"mname": mname, "new_change_date": new_change_date, "new_equipment_code": new_equipment_code}).fetchone()
+                if res_new:
+                    return {"success": False, "message": "新的日期和設備代碼組合已存在記錄"}
+
+            sql_eq = "SELECT TOP 1 Equipment_Name FROM [AMIS].[dbo].[Blanket_Equipment_Code] WHERE mname = :mname AND Equipment_Code = :new_equipment_code"
+            res_eq = conn.execute(text(sql_eq), {"mname": mname, "new_equipment_code": new_equipment_code}).fetchone()
+            if not res_eq:
+                return {"success": False, "message": f"無法找到對應的 Equipment_Name for code {new_equipment_code}"}
+            new_equipment_name = res_eq[0]
+
+        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
+            sql_update = """
+                UPDATE [AMIS].[dbo].[Blanket_Replacement_Record]
+                SET Change_Date = :new_change_date,
+                    Equipment_Code = :new_equipment_code,
+                    Equipment_Name = :new_equipment_name,
+                    busr = :busr
+                WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code
+            """
+            conn.execute(text(sql_update), {
+                "mname": mname,
+                "change_date": change_date,
+                "equipment_code": equipment_code,
+                "new_change_date": new_change_date,
+                "new_equipment_code": new_equipment_code,
+                "new_equipment_name": new_equipment_name,
+                "busr": busr
+            })
+
+        return {
+            "success": True,
+            "data": {
+                "mname": mname,
+                "Change_Date": new_change_date,
+                "Equipment_Name": new_equipment_name,
+                "busr": busr,
+                "Equipment_Code": new_equipment_code
+            }
+        }
+
+    def delete(self, mname: str, change_date: str, equipment_code: str):
+        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
+        
+        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
+            sql_check = "SELECT TOP 1 Equipment_Name, busr FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code"
+            res = conn.execute(text(sql_check), {"mname": mname, "change_date": change_date, "equipment_code": equipment_code}).fetchone()
+            if not res:
+                return {"success": False, "message": "找不到要刪除的記錄"}
+            equipment_name, busr = res
+
+        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
+            sql_delete = "DELETE FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code"
+            conn.execute(text(sql_delete), {"mname": mname, "change_date": change_date, "equipment_code": equipment_code})
+
+        return {
+            "success": True,
+            "data": {
+                "mname": mname,
+                "Change_Date": change_date,
+                "Equipment_Name": equipment_name,
+                "busr": busr,
+                "Equipment_Code": equipment_code
+            }
         }
 
 
@@ -6860,161 +7021,3 @@ class scale_weigh_tickets:
 
 
 
-
-class blanket_replacement_record:
-    def __init__(self, servers):
-        self.servers = servers
-
-    def fetch(self, mname: str = None, year: int = None):
-        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
-        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
-            sql = "SELECT mname, Change_Date, Equipment_Name, Equipment_Code, busr FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE 1=1"
-            params = {}
-            if mname:
-                sql += " AND mname = :mname"
-                params['mname'] = mname
-            if year:
-                sql += " AND YEAR(Change_Date) = :year"
-                params['year'] = year
-            sql += " ORDER BY Change_Date DESC"
-            
-            query = conn.execute(text(sql), params)
-            df_result = pd.DataFrame([dict(i) for i in query])
-
-        if not df_result.empty:
-            if 'Change_Date' in df_result.columns:
-                df_result['Change_Date'] = df_result['Change_Date'].astype(str)
-            result_json = df_result.to_dict(orient="records")
-        else:
-            result_json = []
-
-        return result_json
-
-    def fetch_equipment(self):
-        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
-        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
-            sql = "SELECT mname, Equipment_Name, Equipment_Code FROM [AMIS].[dbo].[Blanket_Equipment_Code] ORDER BY mname, Equipment_Code"
-            query = conn.execute(text(sql))
-            df_result = pd.DataFrame([dict(i) for i in query])
-
-        if not df_result.empty:
-            result_json = df_result.to_dict(orient="records")
-        else:
-            result_json = []
-
-        return result_json
-
-    def create(self, mname: str, change_date: str, equipment_code: str, busr: str):
-        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
-        
-        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
-            sql_eq = "SELECT TOP 1 Equipment_Name FROM [AMIS].[dbo].[Blanket_Equipment_Code] WHERE mname = :mname AND Equipment_Code = :equipment_code"
-            res = conn.execute(text(sql_eq), {"mname": mname, "equipment_code": equipment_code}).fetchone()
-            if not res:
-                return {"success": False, "message": f"無法找到對應的 Equipment_Name for code {equipment_code}"}
-            equipment_name = res[0]
-
-            sql_check = "SELECT TOP 1 1 FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code"
-            res_chk = conn.execute(text(sql_check), {"mname": mname, "change_date": change_date, "equipment_code": equipment_code}).fetchone()
-            if res_chk:
-                return {"success": False, "message": "記錄已存在，無法重複新增"}
-
-        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
-            sql_insert = """
-                INSERT INTO [AMIS].[dbo].[Blanket_Replacement_Record] (mname, Change_Date, Equipment_Name, Equipment_Code, busr)
-                VALUES (:mname, :change_date, :equipment_name, :equipment_code, :busr)
-            """
-            conn.execute(text(sql_insert), {
-                "mname": mname,
-                "change_date": change_date,
-                "equipment_name": equipment_name,
-                "equipment_code": equipment_code,
-                "busr": busr
-            })
-
-        return {
-            "success": True,
-            "data": {
-                "mname": mname,
-                "Change_Date": change_date,
-                "Equipment_Name": equipment_name,
-                "busr": busr,
-                "Equipment_Code": equipment_code
-            }
-        }
-
-    def update(self, mname: str, change_date: str, equipment_code: str, new_change_date: str, new_equipment_code: str, busr: str):
-        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
-        
-        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
-            sql_check_old = "SELECT TOP 1 1 FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code"
-            res_old = conn.execute(text(sql_check_old), {"mname": mname, "change_date": change_date, "equipment_code": equipment_code}).fetchone()
-            if not res_old:
-                return {"success": False, "message": "找不到要更新的記錄"}
-
-            if change_date != new_change_date or equipment_code != new_equipment_code:
-                sql_check_new = "SELECT TOP 1 1 FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :new_change_date AND Equipment_Code = :new_equipment_code"
-                res_new = conn.execute(text(sql_check_new), {"mname": mname, "new_change_date": new_change_date, "new_equipment_code": new_equipment_code}).fetchone()
-                if res_new:
-                    return {"success": False, "message": "新的日期和設備代碼組合已存在記錄"}
-
-            sql_eq = "SELECT TOP 1 Equipment_Name FROM [AMIS].[dbo].[Blanket_Equipment_Code] WHERE mname = :mname AND Equipment_Code = :new_equipment_code"
-            res_eq = conn.execute(text(sql_eq), {"mname": mname, "new_equipment_code": new_equipment_code}).fetchone()
-            if not res_eq:
-                return {"success": False, "message": f"無法找到對應的 Equipment_Name for code {new_equipment_code}"}
-            new_equipment_name = res_eq[0]
-
-        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
-            sql_update = """
-                UPDATE [AMIS].[dbo].[Blanket_Replacement_Record]
-                SET Change_Date = :new_change_date,
-                    Equipment_Code = :new_equipment_code,
-                    Equipment_Name = :new_equipment_name,
-                    busr = :busr
-                WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code
-            """
-            conn.execute(text(sql_update), {
-                "mname": mname,
-                "change_date": change_date,
-                "equipment_code": equipment_code,
-                "new_change_date": new_change_date,
-                "new_equipment_code": new_equipment_code,
-                "new_equipment_name": new_equipment_name,
-                "busr": busr
-            })
-
-        return {
-            "success": True,
-            "data": {
-                "mname": mname,
-                "Change_Date": new_change_date,
-                "Equipment_Name": new_equipment_name,
-                "busr": busr,
-                "Equipment_Code": new_equipment_code
-            }
-        }
-
-    def delete(self, mname: str, change_date: str, equipment_code: str):
-        srv_SRVMESDBA1 = self.servers['SRVMESDBA1']
-        
-        with srv_SRVMESDBA1['create_engine'][0].connect() as conn:
-            sql_check = "SELECT TOP 1 Equipment_Name, busr FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code"
-            res = conn.execute(text(sql_check), {"mname": mname, "change_date": change_date, "equipment_code": equipment_code}).fetchone()
-            if not res:
-                return {"success": False, "message": "找不到要刪除的記錄"}
-            equipment_name, busr = res
-
-        with srv_SRVMESDBA1['create_engine'][0].begin() as conn:
-            sql_delete = "DELETE FROM [AMIS].[dbo].[Blanket_Replacement_Record] WHERE mname = :mname AND Change_Date = :change_date AND Equipment_Code = :equipment_code"
-            conn.execute(text(sql_delete), {"mname": mname, "change_date": change_date, "equipment_code": equipment_code})
-
-        return {
-            "success": True,
-            "data": {
-                "mname": mname,
-                "Change_Date": change_date,
-                "Equipment_Name": equipment_name,
-                "busr": busr,
-                "Equipment_Code": equipment_code
-            }
-        }

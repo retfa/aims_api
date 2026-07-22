@@ -77,8 +77,7 @@ class ScaleWeighPatchBody(BaseModel):
               ]
             }
         }
-
-
+        
 class PostBlanket(BaseModel):
     mname: str = Field(..., description="機台名稱", example="20")
     Change_Date: datetime = Field(..., description="更換日期", example="2024-01-01T00:00:00")
@@ -98,4 +97,6 @@ class PutBlanket(BaseModel):
     New_Change_Date: datetime = Field(..., description="新更換日期", example="2024-01-02T00:00:00")
     New_Equipment_Code: str = Field(..., description="新換毯資料", example="A")
 
+
+        
 
